@@ -1,12 +1,8 @@
-from flask import Flask
-from routes.user import user
+from cbridge import create_app
+
+flask_app = create_app()
 
 APP_PORT = 8880
 
-
-def create_app():
-    app = Flask(__name__, template_folder='templates')
-
-    app.register_blueprint(user, url_prefix='/user')
-
-    return app
+if __name__ == '__main__':
+    flask_app.run(host='0.0.0.0', debug=True, port=APP_PORT)

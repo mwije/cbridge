@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile{% endblock %}
+
+
+{% block content %}
+    {{ current_user.username }}
+    {{ current_user.password }}
+{% endblock %}

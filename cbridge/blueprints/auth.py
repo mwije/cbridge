@@ -10,10 +10,10 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        if user and bcrypt.check_password_hash(user.password, password):
+        user = User.query.filter(User.username == username).first()
+        if bcrypt.check_password_hash(user.password, password):
             login_user(user)
-            return redirect(url_for('profile.profile'))
+            return redirect(url_for('profile.index'))
         flash('Invalid credentials')
     return render_template('login.html')
 
@@ -21,18 +21,21 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('Logged out')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
-        #email = request.form.get('email')
         password = request.form.get('password')
+
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
         new_user = User(username=username, password=hashed_password)
+        
         db.session.add(new_user)
         db.session.commit()
+
         flash('Account created successfully!')
         return redirect(url_for('auth.login'))
     return render_template('register.html')
