@@ -4,8 +4,60 @@
 
 {% block content %}
     <form method='POST' action="{{ url_for('auth.register')}}">
-        <input type="text" name="username" placeholder="Username"><br>
-        <input type="text" name="password" placeholder="Password"><br>
-        <input type="submit" value="Register">
+        {% for field in form %}
+            {% if field.type != 'UnboundField' %}
+            {% if field.widget.input_type != 'hidden' %}
+            {{ field.label }}
+            {% endif %}
+            {{ field }} <br>
+            {% endif %}
+        {% endfor %}
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const maxWidth = 40; // Maximum width in characters to avoid excessively wide fields
+        
+            function calculateWidth(maxLength, fontSize) {
+                // Calculate width in 'ch' units, adjust the multiplier based on font-size
+                const characterWidth = 1.2; // Adjust multiplier based on font-size as needed
+                return Math.min(maxLength, maxWidth) * characterWidth * fontSize; // Adjust for font-size
+            }
+        
+            document.querySelectorAll('input[maxlength], textarea[maxlength]').forEach(function(input) {
+                const maxLength = parseInt(input.getAttribute('maxlength'), 10);
+                if (maxLength) {
+                    const style = window.getComputedStyle(input);
+                    const fontSize = parseFloat(style.fontSize) || 16; // Default to 16px if not defined
+                    
+                    // Calculate width based on font-size
+                    const widthInCh = calculateWidth(maxLength, fontSize / 16); // Font-size in 'rem' units
+        
+                    // Set width only if it's an input field
+                    if (input.tagName === 'INPUT') {
+                        input.style.width = `${widthInCh}rem`;
+                    }
+        
+                    // Switch to textarea if the maxLength exceeds the reasonable limit
+                    if (maxLength > maxWidth) {
+                        if (input.tagName === 'INPUT') {
+                            const textarea = document.createElement('textarea');
+                            textarea.setAttribute('maxlength', maxLength);
+                            textarea.setAttribute('name', input.getAttribute('name'));
+                            textarea.setAttribute('id', input.getAttribute('id'));
+                            textarea.setAttribute('rows', Math.ceil(maxLength / 50)); // Adjust row calculation as needed
+        
+                            // Copy attributes from input to textarea
+                            textarea.value = input.value;
+                            textarea.className = input.className; // Keep existing classes
+                            input.parentNode.replaceChild(textarea, input);
+                        }
+                    }
+                }
+            });
+        });
+        </script>
+        
+        
+        
 {% endblock %}

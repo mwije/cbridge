@@ -4,8 +4,15 @@
 
 {% block content %}
     <form method='POST' action="{{ url_for('auth.login')}}">
-        <input type="text" name="username" placeholder="Username"><br>
-        <input type="text" name="password" placeholder="Password"><br>
-        <input type="submit" value="Login">
+        {{ form.csrf_token }}
+        {{ form.username.label }}
+        {{ form.username }} <br>
+        {{ form.password.label }}
+        {{ form.password }} <br>
+        {{ form.submit }}
+        
     </form>
+
+    <br>
+    Don't have one? You can <a href="{{ url_for('auth.register') }}">apply</a> for an account
 {% endblock %}

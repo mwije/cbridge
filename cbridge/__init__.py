@@ -3,7 +3,6 @@ from flask import Flask
 from .extensions import init_extensions, db, login_manager, bcrypt, migrate
 from .blueprints import register_blueprints
 
-
 #from flask_migrate import Migrate
 #from flask_bcrypt import Bcrypt
 

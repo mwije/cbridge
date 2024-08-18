@@ -1,0 +1,17 @@
+/* Ensure fields are responsive */
+input[type="text"], input[type="password"], textarea {
+    box-sizing: border-box; /* Include padding and border in width */
+    width: 100%; /* Full width of the container */
+    max-width: 100%; /* Prevent fields from exceeding container width */
+}
+
+/* Specific handling for input fields */
+input[maxlength] {
+    width: auto; /* Allow dynamic width adjustment */
+}
+
+/* Adjust textarea rows for multiline fields */
+textarea {
+    width: 100%; /* Full width of the container */
+    max-width: 100%; /* Prevent exceeding container width */
+}
