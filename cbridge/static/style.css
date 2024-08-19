@@ -12,6 +12,18 @@ input[maxlength] {
 
 /* Adjust textarea rows for multiline fields */
 textarea {
-    width: 100%; /* Full width of the container */
-    max-width: 100%; /* Prevent exceeding container width */
+    width: 95%; /* Full width of the container */
+    max-width: 95%; /* Prevent exceeding container width */
 }
+
+input[required], 
+textarea[required], 
+select[required] {
+    border-color: #c00;
+    border-width: 1px;
+}
+    
+input:required:invalid {
+    border-color: #c00000;
+}
+

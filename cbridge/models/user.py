@@ -2,12 +2,14 @@ from ..extensions import db
 from flask_login import UserMixin
 from datetime import datetime
 
+from wtforms.validators import DataRequired, Length, Email, Optional
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     uid = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(50), nullable=False)
-    role = db.Column(db.String(10), nullable=False)
+    role = db.Column(db.String(10), nullable=False, default='client')
 
     name = db.Column(db.String(120), nullable=False)
     date_birth = db.Column(db.Date, nullable=False)
@@ -18,6 +20,7 @@ class User(UserMixin, db.Model):
     address = db.Column(db.String(120), nullable=False)
 
     date_joined = db.Column(db.Date, default=datetime.utcnow)
+    active = db.Column(db.Boolean, default=True)
 
     @classmethod
     def columns(self):
@@ -32,3 +35,18 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return self.uid
+
+    @classmethod
+    def custom_constraints(cls):
+        return {
+            'username': [Length(min=3, max=50)],
+            'password': [Length(min=3, max=30)],
+            'email': [Optional(), Email()]
+        }
+    
+    @classmethod
+    def valueset(cls):
+        return {
+            'role': ['client', 'clinician', 'helper', 'admin', 'dev'],
+            'active': [True, False]
+        }

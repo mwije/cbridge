@@ -30,16 +30,37 @@ def logout():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            
+    print(request.method)
+    
+    if form.validate_on_submit():
+        print('yoo')
+        def verified_password(): return (form.password.data == form.confirm_password.data)
+
+        if verified_password():
+            print('Registering')
             hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-            new_user = User(username=form.username.data, password=hashed_password)
+            new_user = User(
+                username = form.username.data,
+                password = hashed_password,
+                role = form.role.data,
+                name = form.name.data,
+                date_birth = form.date_birth.data,
+                identification = form.identification.data,
+                telephone = form.telephone.data,
+                email = form.email.data,
+                address = form.address.data
+                )
             
             db.session.add(new_user)
             db.session.commit()
 
             flash('Account created successfully!')
             return redirect(url_for('auth.login'))
-    print(form)
+        else:
+            print('Pass')
+            flash('Password mismatch')
+    else:
+        print('Validation failed')
+    print ('sending')
     return render_template('register.html', form=form)
+
