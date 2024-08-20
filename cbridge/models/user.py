@@ -4,6 +4,8 @@ from datetime import datetime
 
 from wtforms.validators import DataRequired, Length, Email, Optional
 
+from .schedule import *
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     uid = db.Column(db.Integer, primary_key=True)
@@ -92,6 +94,7 @@ class Patient(db.Model):
 
     #user = db.relationship('User', back_populates='patients')
     user = db.relationship('User', backref=db.backref('patient', uselist=False))
+    appointments = db.relationship('Appointment', back_populates='patient')
 
 class Clinician(db.Model):
     __tablename__ = 'clinicians'
@@ -100,6 +103,7 @@ class Clinician(db.Model):
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
     user = db.relationship('User', back_populates='clinicians')
+    schedules = db.relationship('Schedule', back_populates='clinician')
     
 class Helper(db.Model):
     __tablename__ = 'helpers'
