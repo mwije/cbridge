@@ -1,5 +1,5 @@
 from .field_labels import label_mapping
-from .user import User
+from .user import *
 
 # Add more models as needed
 

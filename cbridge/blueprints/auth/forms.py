@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, DateField, SelectField
 from sqlalchemy import String
-from wtforms.validators import Length
+from wtforms.validators import Length, DataRequired
 from cbridge.models import label_mapping, _validators, _valuesets
 from cbridge.models.user import User
 
@@ -22,7 +22,6 @@ class RegisterForm(FlaskForm):
     username = StringField(validators = _validators[table]['username'])
     password = PasswordField(validators = _validators[table]['password'])
     confirm_password = PasswordField()
-    role = SelectField(validators = _validators[table]['role'], choices = _valuesets[table]['role'])
     name = StringField(validators = _validators[table]['name'])
     date_birth = DateField(validators = _validators[table]['date_birth'])
     identification = StringField(validators = _validators[table]['identification'])
@@ -31,3 +30,6 @@ class RegisterForm(FlaskForm):
     address = StringField(validators = _validators[table]['address'])
     submit = SubmitField('Register')
 
+class RoleSwitchForm(FlaskForm):
+    role = SelectField(choices = [], validators = [DataRequired()])
+    submit = SubmitField('Apply Role')

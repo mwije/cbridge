@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<form method='POST' action="{{ url_for('auth.selectrole')}}">
+    {% for field in form %}
+        {% if field.type not in ['UnboundField'] %}
+            {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
+            {{ field.label }}
+            {% endif %}
+        {{ field }} <br>
+        {% endif %}
+    {% endfor %}
+</form>
+{% endblock %}

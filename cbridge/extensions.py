@@ -28,4 +28,3 @@ def init_extensions(app):
         flash("Request declined (Reason: Unauthorized)")
         return redirect(url_for('home.index'))
 
-
