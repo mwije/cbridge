@@ -4,7 +4,6 @@
 {% block content %}
     <h1>Hey Guys</h1>
     {% if not current_user.is_anonymous %}
-    <p>{{current_user.has_role('client')}}</p>
-
+        {% include 'menu.html' %}
     {% endif %}
 {% endblock %}
