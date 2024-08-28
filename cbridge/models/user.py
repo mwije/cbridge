@@ -1,6 +1,8 @@
 from ..extensions import db
 from flask_login import UserMixin
 from datetime import datetime
+from sqlalchemy.orm import Mapped
+from typing import List
 
 from wtforms.validators import DataRequired, Length, Email, Optional
 
@@ -54,9 +56,9 @@ class User(UserMixin, db.Model):
     
    
     roles = db.relationship('Role', secondary='user_roles', back_populates='users')
-    patients = db.relationship('Patient')
-    clinicians = db.relationship('Clinician')
-    helpers = db.relationship('Helper')
+    patient: Mapped['Patient'] = db.relationship(back_populates='user', lazy='joined')
+    clinician: Mapped['Clinician'] = db.relationship(back_populates='user', lazy='joined')
+    helper: Mapped['Helper'] = db.relationship(back_populates='user', uselist=False)
  
 
     def has_role(self, role):
@@ -92,18 +94,18 @@ class Patient(db.Model):
     note = db.Column(db.String(50), nullable=False)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
-    #user = db.relationship('User', back_populates='patients')
-    user = db.relationship('User', backref=db.backref('patient', uselist=False))
-    appointments = db.relationship('Appointment', back_populates='patient')
+
+    user: Mapped['User'] = db.relationship(back_populates='patient')
+    appointments: Mapped[List['Appointment']] = db.relationship(back_populates='patient')
 
 class Clinician(db.Model):
     __tablename__ = 'clinicians'
     id = db.Column(db.Integer, primary_key=True)
     note = db.Column(db.String(50), nullable=False)
-    uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
+    uid = db.Column(db.Integer, db.ForeignKey('users.uid'), unique=True, nullable=False)
 
-    user = db.relationship('User', back_populates='clinicians')
-    schedules = db.relationship('Schedule', back_populates='clinician')
+    user: Mapped['User'] = db.relationship(back_populates='clinician')
+    schedules: Mapped[List['Schedule']] = db.relationship(back_populates='clinician')
     
 class Helper(db.Model):
     __tablename__ = 'helpers'
@@ -111,4 +113,4 @@ class Helper(db.Model):
     note = db.Column(db.String(50), nullable=False)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
-    user = db.relationship('User', back_populates='helpers')
+    user: Mapped['User'] = db.relationship(back_populates='helper')

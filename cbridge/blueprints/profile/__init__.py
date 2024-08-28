@@ -28,13 +28,16 @@ def render_roleview(uid):
         case 'client':
             print('USER ROLE:', current_user.patient)
             if current_user.patient:
-                patient = current_user.patient
-                roledata = get_fieldvalues(Patient, current_user.patient)
+                  roledata = get_fieldvalues(Patient, current_user.patient)
+        case 'clinician':
+            print('USER ROLE:', current_user.clinician)
+            if current_user.clinician:
+                roledata = get_fieldvalues(Clinician, current_user.clinician)
         case default:
             error = f'invalid role { session.get('current_role') }'
             print(error)
             return error
-    print('DATAROLE:', current_user.patient, roledata)
+
     if roledata:
         
         return render_template('userinfo.html', fields=roledata, title=session.get('current_role') )

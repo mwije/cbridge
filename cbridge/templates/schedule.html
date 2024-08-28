@@ -3,8 +3,37 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
     <h1>{{ title }}</h1>
-    {{ bookings }}
-    {% for booking in bookings %}
-        {% include 'schedule_snippet.html' %}
-    {% endfor %}
+    
+    <!-- Form for adding a new schedule -->
+    <form method='POST' action="{{ url_for('book.clinicianschedule') }}">
+        {% for field in new_schedule_form %}
+            {% if field.type not in ['UnboundField'] %}
+                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
+                    {{ field.label }}
+                {% endif %}
+                {{ field }} <br>
+            {% endif %}
+        {% endfor %}
+    </form>
+    
+    <br>
+    
+    <!-- Upcoming and Active Bookings -->
+    <div id="upcoming-bookings">
+        {% for booking in bookings if not booking.date | is_past %}
+            {% include 'schedule_snippet.html' %}
+        {% endfor %}
+    </div>
+
+    <!-- Button to Show/Hide Past Records -->
+    <button class="btn btn-primary mt-4" type="button" data-toggle="collapse" data-target="#past-bookings" aria-expanded="false" aria-controls="past-bookings">
+        Show/Hide Past Records
+    </button>
+
+    <!-- Collapsible Past Records -->
+    <div class="collapse mt-3" id="past-bookings">
+        {% for booking in bookings if booking.date | is_past %}
+            {% include 'schedule_snippet.html' %}
+        {% endfor %}
+    </div>
 {% endblock %}

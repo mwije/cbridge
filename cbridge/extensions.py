@@ -7,6 +7,8 @@ from flask_migrate import Migrate
 import logging
 import os
 
+from .decorators import init_jinjafilters
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 bcrypt = Bcrypt()
@@ -19,6 +21,7 @@ def init_extensions(app):
     migrate.init_app(app, db)
 
     init_logger(app)
+    init_jinjafilters(app)
 
     from .models.user import User
 
@@ -61,3 +64,4 @@ def init_logger(app):
     # Set Flask's logger to use the same configuration
     app.logger.addHandler(console_handler)
     app.logger.setLevel(logging.INFO)
+

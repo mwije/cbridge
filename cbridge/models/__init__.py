@@ -1,9 +1,10 @@
 from .field_labels import label_mapping
 from .user import *
+from .schedule import *
 
 # Add more models as needed
 
-models = [User]  # Add all relevant models
+models = [User, Schedule]  # Add all relevant models
 
 
 from sqlalchemy import inspect, String
