@@ -11,26 +11,39 @@
     <div class="d-flex justify-content-between align-items-center">
         <!-- Heading and Date Information -->
         <div>
-            <h5 class="mb-1">{{ booking['date'] | day_of_week }}, {{ booking['date'].strftime('%B %d, %Y') }}</h5>
+            <h5 class="mb-1">{{ booking['date'] | day_of_week }}, {{ booking['date'].strftime('%B %d, %Y') }}
+                <small class="font-weight-bold font-italic">with Dr. {{ booking.clinician.user.name }}</small>
+            </h5>
             <small class="d-block">{{ booking['date'] | remaining_time }}</small>
+            
         </div>
 
         <!-- Icons and Actions -->
         <div class="text-end">
-            <form action="{{ url_for('book.remove_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-danger btn-sm" title="Remove Schedule">
-                    <i class="bi bi-trash"></i> Remove
-                </button>
-            </form>
-            <form action="{{ url_for('book.toggle_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-info btn-sm" title="Toggle Active/Inactive">
-                    {% if booking.active %}
-                        <i class="bi bi-toggle-on"></i> Mark as Inactive
-                    {% else %}
-                        <i class="bi bi-toggle-off"></i> Mark as Active
-                    {% endif %}
-                </button>
-            </form>
+            {% if session.get('current_role') == 'clinician' %}
+                <form action="{{ url_for('book.remove_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm" title="Remove Schedule">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </form>
+                <form action="{{ url_for('book.toggle_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-info btn-sm" title="Toggle Active/Inactive">
+                        {% if booking.active %}
+                            <i class="bi bi-toggle-on"></i> Mark as Inactive
+                        {% else %}
+                            <i class="bi bi-toggle-off"></i> Mark as Active
+                        {% endif %}
+                    </button>
+                </form>
+            {% elif session.get('current_role') == 'client' %}
+                {% if booking.appointments | length < booking.max_bookings %}
+                    <form method="POST" action="{{ url_for('book.make_booking', schedule_id=booking.id) }}">
+                        <button type="submit" class="btn btn-primary">Book This Slot</button>
+                    </form>
+                {% else %}
+                    <span class="text-danger">Fully Booked</span>
+                {% endif %}
+            {% endif %}
         </div>
     </div>
 

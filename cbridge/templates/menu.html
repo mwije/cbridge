@@ -1,5 +1,5 @@
 {% if session['current_role'] == 'client' %}
-    <a href="{{ url_for('profile.index')}}" class="btn btn-secondary">Bookings</a>
+    <a href="{{ url_for('book.booking')}}" class="btn btn-secondary">Bookings</a>
     <a href="{{ url_for('profile.index')}}" class="btn btn-secondary">My Records</a>
 {% endif %}
 

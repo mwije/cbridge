@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Appointment{% endblock %}
+{% block content %}
+    <h1>Your Upcoming Appointment</h1>
+    
+    <div class="list-group-item border bg-success text-light mb-3 rounded">
+        <h5 class="mb-1">{{ booking.schedule.date | day_of_week }}, {{ booking.schedule.date.strftime('%B %d, %Y') }}</h5>
+        <p class="mb-1 mt-2">
+            <strong>Time:</strong> From {{ booking.schedule.time_start }} to {{ booking.schedule.time_end }}
+        </p>
+        <p><strong>Location:</strong> @ {{ booking.schedule.clinic }}</p>
+        <p><strong>Notes:</strong> {{ booking.notes }}</p>
+    </div>
+    <p>In {{ booking.schedule.date | remaining_time }}</p>
+
+    <form method="POST" action="{{ url_for('book.cancel_appointment', appointment_id=booking.id) }}">
+        <button type="submit" class="btn btn-danger">Cancel Appointment</button>
+    </form>
+{% endblock %}

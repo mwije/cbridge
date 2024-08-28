@@ -13,7 +13,7 @@ book_bp = Blueprint('book', __name__)
 def clinicianschedule():
     form = NewScheduleForm()
     if form.validate_on_submit():
-        flash('Received')
+        flash('New session registered')
         # Add schedule entry
         new_schedule = Schedule(
                 clinician_id = current_user.clinician.id,
@@ -51,13 +51,59 @@ def toggle_schedule(schedule_id):
         db.session.commit()
     return redirect(url_for('book.clinicianschedule'))
 
-@book_bp.route('/book')
+@book_bp.route('/booking')
 @role_required('client', 'helper')
 def booking():
+    patient = current_user.patient  # Assuming current_user is the logged-in patient
     title = "My Booking"
-    bookings = {}
-    return render_template('schedule.html', title = title, bookings=bookings)
 
+    # Check if the patient has an active appointment
+    active_appointment = Appointment.query.filter_by(patient_id=patient.id, active=True).first()
+    
+    if active_appointment:
+        return render_template('appointment_details.html', booking=active_appointment)
+    
+    # If no active appointment, show available schedules
+    available_schedules = Schedule.query.filter(
+        Schedule.date >= datetime.now(),
+        Schedule.active == True
+    ).all()
+    
+    return render_template('schedule.html', title = title, bookings=available_schedules)
 
-def get_bookings(clinician):
-    return current_user.clinicians.id
+@book_bp.route('/booking/make/<int:schedule_id>', methods=['POST'])
+@role_required('client', 'helper')
+def make_booking(schedule_id):
+    patient = current_user.patient  # Assuming current_user is the logged-in patient
+    
+    # Retrieve the selected schedule
+    selected_schedule = Schedule.query.get(schedule_id)
+    
+    if selected_schedule and selected_schedule.active:
+        if len(selected_schedule.appointments) < selected_schedule.max_bookings:
+            # Create a new appointment
+            new_appointment = Appointment(
+                patient_id=patient.id,
+                schedule_id=schedule_id,
+                datetime = datetime.today()
+                )
+            db.session.add(new_appointment)
+            db.session.commit()
+            flash("Your appointment has been booked.")
+        else:
+            flash("This schedule is fully booked.")
+    
+    return redirect(url_for('book.booking'))
+
+@book_bp.route('/booking/cancel/<int:appointment_id>', methods=['POST'])
+@role_required('client', 'helper')
+def cancel_appointment(appointment_id):
+    patient = current_user.patient  # Assuming current_user is the logged-in patient
+    appointment = Appointment.query.get(appointment_id)
+    
+    if appointment and appointment.patient_id == patient.id:
+        db.session.delete(appointment)
+        db.session.commit()
+        flash("Your appointment has been canceled.")
+    
+    return redirect(url_for('book.booking'))
