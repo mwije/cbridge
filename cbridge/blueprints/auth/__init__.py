@@ -44,7 +44,7 @@ def selectrole():
         else:
             flash('Invalid role selection!', 'danger')
 
-    return render_template('select_role.html', form=form)
+    return render_template('role_switch.html', form=form)
 
 
 @auth_bp.route('/logout')

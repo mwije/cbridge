@@ -1,13 +1,20 @@
 from flask import Blueprint, render_template
+import logging
 
 from .auth import auth_bp
 from .profile import profile_bp
 from .home import home_bp
+from .book import book_bp
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)
+    logging.info('blueprint auth registered')
     app.register_blueprint(home_bp)
+    logging.info('blueprint home registered')
     app.register_blueprint(profile_bp, url_prefix='/profile')
+    logging.info('blueprint profile registered')
+    app.register_blueprint(book_bp)
+    logging.info('blueprint book registered')
     
     @app.errorhandler(404)
     def error404(error):

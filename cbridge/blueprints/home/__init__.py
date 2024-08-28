@@ -10,9 +10,4 @@ home_bp = Blueprint('home', __name__)
 def index():
     return render_template('index.html')
 
-
-@home_bp.route('/client')
-@role_required('client')
-def client():
-    return render_template('index.html')
     
