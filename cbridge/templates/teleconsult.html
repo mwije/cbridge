@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Video{% endblock %}
+{% block head %}
+<style>
+    body { margin: 0; }
+    #jitsi-container { height: 100vh; }
+</style>
+{% endblock %}
+{% block content %}
+    <h1>Video View</h1>
+    <div class="container mt-4">
+        <!-- Video Consultation Section -->
+        <div class="row mb-3">
+            <div class="col">
+                <div id="jitsi-container" class="container mt-4"></div>
+                <button id="fullscreen-toggle" class="btn btn-secondary mt-2">Toggle Fullscreen</button>
+            </div>
+        </div>
+
+        <script src='{{ VIDEO_HOST_URL }}video/external_api.js'></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const domain = '{{ VIDEO_HOST_DOMAIN }}';  // Your Jitsi domain
+                const options = {
+                    roomName: '{{ conference.url }}',  // Conference room name
+                    width: '100%',
+                    height: '100%',
+                    parentNode: document.querySelector('#jitsi-container'),
+                    configOverwrite: { startWithAudioMuted: true },
+                    interfaceConfigOverwrite: { 
+                        filmStripOnly: false,
+                        SHOW_JITSI_WATERMARK: false
+                    }
+                };
+                const api = new JitsiMeetExternalAPI(domain, options);
+
+                api.addEventListeners({
+                    onConferenceJoined: () => console.log('Conference joined'),
+                    onConferenceLeft: () => console.log('Conference left'),
+                    onConferenceWillJoin: () => console.log('Conference will join'),
+                    onConferenceFailed: () => console.log('Conference failed')
+                });
+            });
+        </script>
+
+        <!-- Tabbed Interface for Doctor -->
+        <div class="row">
+            <div class="col">
+                <ul class="nav nav-tabs" id="consultTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="demographics-tab" data-bs-toggle="tab" href="#demographics" role="tab">Patient Demographics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="complaints-tab" data-bs-toggle="tab" href="#complaints" role="tab">Current Complaint</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="drugs-tab" data-bs-toggle="tab" href="#drugs" role="tab">Ongoing Drugs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="lab-reports-tab" data-bs-toggle="tab" href="#lab-reports" role="tab">Lab Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="management-plan-tab" data-bs-toggle="tab" href="#management-plan" role="tab">Management Plan</a>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="consultTabContent">
+                    <!-- Demographics Tab -->
+                    <div class="tab-pane fade show active" id="demographics" role="tabpanel">
+                        <iframe src="{{ url_for('emr.demographics', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                    <!-- Complaints Tab -->
+                    <div class="tab-pane fade" id="complaints" role="tabpanel">
+                        <iframe src="{{ url_for('emr.complaints', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                    <!-- Allergies Tab -->
+                    <div class="tab-pane fade" id="allergies" role="tabpanel">
+                        <iframe src="{{ url_for('emr.allergies', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                    <!-- Ongoing Drugs Tab -->
+                    <div class="tab-pane fade" id="drugs" role="tabpanel">
+                        <iframe src="{{ url_for('emr.drugs', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                    <!-- Lab Reports Tab -->
+                    <div class="tab-pane fade" id="lab-reports" role="tabpanel">
+                        <iframe src="{{ url_for('emr.lab_reports', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                    <!-- Management Plan Tab -->
+                    <div class="tab-pane fade" id="management-plan" role="tabpanel">
+                        <iframe src="{{ url_for('emr.management_plan', patient_id=conference.appointment.patient_id) }}" style="width: 100%; height: 400px;" frameborder="0"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons for Doctor -->
+        <div class="row mt-4">
+            <div class="col text-end">
+                <button id="complete-consult" class="btn btn-success">Complete Consultation</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to proceed?
+                <div id="cooldown-timer" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm-action" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+    let countdownInterval;
+
+    // Fullscreen toggle
+    $('#fullscreen-toggle').on('click', function() {
+        const iframe = document.getElementById('consult-iframe');
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            iframe.requestFullscreen().catch(err => console.log(err));
+        }
+    });
+
+    // Confirmation and cooldown timer
+    function startCooldown(redirectUrl) {
+        const appointmentId = {{ conference.appointment_id }};
+        const closingUrl = "{{ url_for('consult.conclude_appointment', appointment_id=conference.appointment_id) }}";
+
+        let timeLeft = 3;
+        $('#cooldown-timer').text(`Redirecting in ${timeLeft} seconds...`);
+        countdownInterval = setInterval(function() {
+            timeLeft--;
+            $('#cooldown-timer').text(`Redirecting in ${timeLeft} seconds...`);
+            if (timeLeft <= 0) {
+                fetch(closingUrl, { method: 'GET', credentials: 'same-origin' })
+                clearInterval(countdownInterval);
+                window.location.href = redirectUrl;
+            }
+        }, 1000);
+    }
+
+    $('#complete-consult').on('click', function() {
+        $('#confirmationModal').modal('show');
+        $('#confirm-action').off('click').on('click', function() {
+            startCooldown('{{ url_for('consult.staging') }}');
+        });
+    });
+
+    $('#confirmationModal').on('hidden.bs.modal', function() {
+        clearInterval(countdownInterval);
+    });
+});
+</script>
+{% endblock %}

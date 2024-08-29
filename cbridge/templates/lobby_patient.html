@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center my-4">{{ title }}</h1>
+    <div class="text-center">
+        <h2 class="text-muted">Date: {{ thedate }}</h2>
+        <h3 class="text-muted">Time Slot: {{ appointment.schedule.time_start }} - {{ appointment.schedule.time_end }}</h3>
+        <h4 id="current-time" class="font-weight-bold"></h4>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 text-center">
+            <h4>Your Current Queue Position</h4>
+            <div id="queue-position" class="display-1 font-weight-bold text-primary">-</div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-6 text-center">
+            <h4>Total Appointments</h4>
+            <div id="total-appointments" class="h3 font-weight-normal text-muted">-</div>
+        </div>
+    </div>
+
+    <div id="alert-container" class="text-center mt-5" style="display: none;">
+        <div class="alert alert-success font-weight-bold">
+            <h4>You are next in line!</h4>
+            <p>Please be ready to join the consultation.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const appointmentId = {{ appointment.id }};
+        const statusUrl = "{{ url_for('consult.get_appointment_status', appointment_id=appointment.id) }}";
+
+        function updateQueueStatus() {
+            fetch(statusUrl, { method: 'GET', credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    const position = data.queue_position;
+                    const total = data.total;
+                    const conferenceUrl = data.conference;
+                    const live = data.live;
+                    const status = data.status;
+                    const queuePositionElem = document.getElementById('queue-position');
+                    const totalAppointmentsElem = document.getElementById('total-appointments');
+                    const alertContainer = document.getElementById('alert-container');
+
+                    // Update the total appointments and queue position
+                    totalAppointmentsElem.textContent = total;
+                    queuePositionElem.textContent = position;
+
+                    // Highlight when the patient is next
+                    if (position <= 1 || live) {
+                        queuePositionElem.classList.add('text-success');
+                        queuePositionElem.classList.add('blinking');
+                        alertContainer.style.display = 'block';
+                    } else {
+                        queuePositionElem.classList.remove('text-success', 'blinking');
+                        alertContainer.style.display = 'none';
+                    }
+
+                    // Redirect when the conference is ready
+                    if (conferenceUrl && live) {
+                        queuePositionElem.textContent = 'Entering...';
+                        setTimeout(() => {
+                            window.location.href = conferenceUrl;
+                        }, 5000);
+                    }
+                })
+                .catch(error => console.error('Error fetching status:', error));
+        }
+
+        // Function to update the current time every second
+        function updateTime() {
+            const now = new Date();
+            const currentTimeElem = document.getElementById('current-time');
+            currentTimeElem.textContent = now.toLocaleTimeString();
+        }
+
+        // Call updateQueueStatus initially and set it to repeat every 5 seconds
+        updateQueueStatus();
+        setInterval(updateQueueStatus, 5000);
+
+        // Update time every second
+        setInterval(updateTime, 1000);
+    });
+
+    // Blinking effect using CSS
+    const css = `
+        .blinking {
+            animation: blink-animation 1s steps(5, start) infinite;
+            -webkit-animation: blink-animation 1s steps(5, start) infinite;
+        }
+        @keyframes blink-animation {
+            to {
+                visibility: hidden;
+            }
+        }
+        @-webkit-keyframes blink-animation {
+            to {
+                visibility: hidden;
+            }
+        }
+    `;
+    const style = document.createElement('style');
+    style.innerHTML = css;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

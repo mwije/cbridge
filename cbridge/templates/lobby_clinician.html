@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    <h2>{{ thedate }}</h2>
+    <!-- Form for adding a new schedule -->
+    <form method='POST' action="{{ url_for('consult.staging') }}">
+        {% for field in queue_form %}
+            {% if field.type not in ['UnboundField'] %}
+                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
+                    {{ field.label }}
+                {% endif %}
+                {{ field }} <br>
+            {% endif %}
+        {% endfor %}
+    </form>
+    
+    <br>
+    
+     
+{% endblock %}

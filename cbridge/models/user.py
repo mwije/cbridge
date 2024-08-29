@@ -91,7 +91,7 @@ class UserRole(db.Model):
 class Patient(db.Model):
     __tablename__ = 'patients'
     id = db.Column(db.Integer, primary_key=True)
-    note = db.Column(db.String(50), nullable=False)
+    note = db.Column(db.String(50), nullable=True)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
 
@@ -101,7 +101,7 @@ class Patient(db.Model):
 class Clinician(db.Model):
     __tablename__ = 'clinicians'
     id = db.Column(db.Integer, primary_key=True)
-    note = db.Column(db.String(50), nullable=False)
+    note = db.Column(db.String(50), nullable=True)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'), unique=True, nullable=False)
 
     user: Mapped['User'] = db.relationship(back_populates='clinician')

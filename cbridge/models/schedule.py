@@ -37,8 +37,52 @@ class Appointment(db.Model):
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedules.id'))
     status = db.Column(db.String(20), nullable=True)
     notes = db.Column(db.String(50), nullable=True)
-    datetime = db.Column(db.DateTime, nullable=False)
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     active = db.Column(db.Boolean, default=True)
 
     patient: Mapped['Patient'] = db.relationship(back_populates='appointments')
     schedule: Mapped['Schedule'] = db.relationship(back_populates='appointments')
+    conference: Mapped['Conference'] = db.relationship(back_populates='appointment')
+
+class Conference(db.Model):
+    __tablename__ = 'conferences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
+    url = db.Column(db.String(50), nullable=True)
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    active = db.Column(db.Boolean, default=False)
+
+    appointment: Mapped['Appointment'] = db.relationship(back_populates='conference')
+
+    def mark_open(self):
+        self.active = True
+        self.datetime = datetime.utcnow()
+        db.session.commit()
+    
+    def mark_close(self):
+        self.active = False
+        db.session.commit()
+
+
+    def exclusive_open(self):
+        # Ensure only this conference is open for schedule
+        
+        current_appointment = db.session.query(Appointment).get(self.appointment_id)
+        schedule_id = current_appointment.schedule_id
+
+        # Query all conferences related to the same schedule_id except the current one
+        other_conferences = db.session.query(Conference).join(Appointment).filter(
+            Appointment.schedule_id == schedule_id,
+            Conference.id != self.id
+        ).all()
+
+        # Deactivate all the other conferences
+        for conference in other_conferences:
+            conference.active = False
+
+        # Ensure the current conference is active
+        self.active = True
+
+        # Commit the transaction
+        db.session.commit()

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TimeField, SubmitField, DateField, IntegerField
+from wtforms import StringField, TimeField, SubmitField, DateField, IntegerField, RadioField
 from sqlalchemy import String
 from wtforms.validators import Length, DataRequired
 from cbridge.models import label_mapping, _validators, _valuesets

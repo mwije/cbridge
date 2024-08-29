@@ -12,7 +12,7 @@
         <p><strong>Location:</strong> @ {{ booking.schedule.clinic }}</p>
         <p><strong>Notes:</strong> {{ booking.notes }}</p>
     </div>
-    <p>In {{ booking.schedule.date | remaining_time }}</p>
+    <p>In {{ booking.schedule.date | remaining_time(time=booking.schedule['time_start']) }}</p>
 
     <form method="POST" action="{{ url_for('book.cancel_appointment', appointment_id=booking.id) }}">
         <button type="submit" class="btn btn-danger">Cancel Appointment</button>

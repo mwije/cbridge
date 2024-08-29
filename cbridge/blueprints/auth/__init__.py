@@ -40,7 +40,7 @@ def selectrole():
         if selected_role in roles:
             session['current_role'] = selected_role
             flash(f'Role {selected_role} applied successfully!', 'success')
-            return redirect(url_for('profile.index'))
+            return redirect(url_for('home.index'))
         else:
             flash('Invalid role selection!', 'danger')
 

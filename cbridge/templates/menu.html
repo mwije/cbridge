@@ -5,5 +5,5 @@
 
 {% if session['current_role'] == 'clinician' %}
     <a href="{{ url_for('book.clinicianschedule')}}" class="btn btn-secondary">Schedule</a>
-    <a href="{{ url_for('profile.index')}}" class="btn btn-secondary">Consultation</a>
+    <a href="{{ url_for('consult.staging')}}" class="btn btn-secondary">Consultation</a>
 {% endif %}

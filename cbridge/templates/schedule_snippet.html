@@ -14,7 +14,7 @@
             <h5 class="mb-1">{{ booking['date'] | day_of_week }}, {{ booking['date'].strftime('%B %d, %Y') }}
                 <small class="font-weight-bold font-italic">with Dr. {{ booking.clinician.user.name }}</small>
             </h5>
-            <small class="d-block">{{ booking['date'] | remaining_time }}</small>
+            <small class="d-block">{{ booking['date'] | remaining_time(time=booking['time_start']) }}</small>
             
         </div>
 
