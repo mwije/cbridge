@@ -5,32 +5,65 @@
 {% block content %}
 <div class="container">
     <h1 class="text-center my-4">{{ title }}</h1>
+    
     <div class="text-center">
         <h2 class="text-muted">Date: {{ thedate }}</h2>
+        <h3 class="text-muted">Clinician: {{ appointment.schedule.clinician.user.name }}</h3>
+        {% if appointment.clinic %}<h3 class="text-muted">Clinic: {{ appointment.clinic}}</h3>{% endif %}
         <h3 class="text-muted">Time Slot: {{ appointment.schedule.time_start }} - {{ appointment.schedule.time_end }}</h3>
-        <h4 id="current-time" class="font-weight-bold"></h4>
+        
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6 text-center">
+                <h4>Time Elapsed</h4>
+                <div id="time-elapsed" class="font-weight-bold">00:00</div>
+                <div class="progress mt-2">
+                    <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6 text-center">
+                <h4>Appointment Status</h4>
+                <div id="appointment-status" class="font-weight-bold">-</div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-3">
+            <div class="col-md-6 text-center">
+                <h4>Current Queue Position</h4>
+                <div id="queue-position" class="display-1 font-weight-bold text-primary">-</div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-3">
+            <div class="col-md-6 text-center">
+                <h4>Total Appointments</h4>
+                <div id="total-appointments" class="h3 font-weight-normal text-muted">-</div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-3">
+            <div class="col-md-6 text-center">
+                <h4>Completed vs Queued Appointments</h4>
+                <div id="completed-queued-status" class="h5 font-weight-normal text-muted">-</div>
+                <div class="progress mt-2">
+                    <div id="completed-queued-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="alert-container" class="text-center mt-5" style="display: none;">
+            <div class="alert alert-success font-weight-bold">
+                <h4>You are next in line!</h4>
+                <p>Please be ready to join the consultation.</p>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('book.cancel_appointment', appointment_id=appointment.id) }}">
+            <button type="submit" class="btn btn-danger">Cancel Appointment</button>
+        </form>
     </div>
 
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-6 text-center">
-            <h4>Your Current Queue Position</h4>
-            <div id="queue-position" class="display-1 font-weight-bold text-primary">-</div>
-        </div>
-    </div>
-
-    <div class="row justify-content-center mt-3">
-        <div class="col-md-6 text-center">
-            <h4>Total Appointments</h4>
-            <div id="total-appointments" class="h3 font-weight-normal text-muted">-</div>
-        </div>
-    </div>
-
-    <div id="alert-container" class="text-center mt-5" style="display: none;">
-        <div class="alert alert-success font-weight-bold">
-            <h4>You are next in line!</h4>
-            <p>Please be ready to join the consultation.</p>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -42,32 +75,63 @@
             fetch(statusUrl, { method: 'GET', credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
+                    const mynumber = data.appointment_number;
                     const position = data.queue_position;
-                    const total = data.total;
+                    const total = data.total_appointments;
+                    const completed = data.completed_appointments;
+                    const queued = data.queued_appointments;
                     const conferenceUrl = data.conference;
                     const live = data.live;
-                    const status = data.status;
-                    const queuePositionElem = document.getElementById('queue-position');
-                    const totalAppointmentsElem = document.getElementById('total-appointments');
-                    const alertContainer = document.getElementById('alert-container');
+                    const status = data.appointment_status;
+                    const timeStart = new Date(data.time_start);
+                    const timeEnd = new Date(data.time_end);
+                    const now = new Date();
+                    
+                    // Update appointment details
+                    document.getElementById('appointment-status').textContent = status.toUpperCase();
+                    document.getElementById('queue-position').textContent = position;
 
-                    // Update the total appointments and queue position
-                    totalAppointmentsElem.textContent = total;
-                    queuePositionElem.textContent = position;
+                    if (status === 'queued') {
+                        document.getElementById('queue-position').classList.add('text-primary');
+                    } else {
+                        document.getElementById('queue-position').classList.remove('text-primary');
+                    }
+
+                    // Update time elapsed and progress bar
+                    const elapsed = Math.max(0, Math.floor((now - timeStart) / 1000)); // in seconds
+                    const totalDuration = (timeEnd - timeStart) / 1000; // in seconds
+                    const percentage = Math.min(100, (elapsed / totalDuration) * 100);
+                    
+                    const formatTime = seconds => {
+                        const minutes = Math.floor(seconds / 60);
+                        const secs = seconds % 60;
+                        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    };
+
+                    document.getElementById('time-elapsed').textContent = formatTime(elapsed);
+                    document.getElementById('progress-bar').style.width = `${percentage}%`;
+                    document.getElementById('progress-bar').setAttribute('aria-valuenow', percentage);
+                    
+                    // Update total and queue information
+                    document.getElementById('total-appointments').textContent = `Appointment ${mynumber} of ${total}`;
+                    const completedQueuedPercentage = Math.min(100, (completed / total) * 100);
+                    document.getElementById('completed-queued-status').textContent = `${completed} Completed / ${queued} Queued`;
+                    document.getElementById('completed-queued-bar').style.width = `${completedQueuedPercentage}%`;
+                    document.getElementById('completed-queued-bar').setAttribute('aria-valuenow', completedQueuedPercentage);
 
                     // Highlight when the patient is next
                     if (position <= 1 || live) {
-                        queuePositionElem.classList.add('text-success');
-                        queuePositionElem.classList.add('blinking');
-                        alertContainer.style.display = 'block';
+                        document.getElementById('queue-position').classList.add('text-success');
+                        document.getElementById('queue-position').classList.add('blinking');
+                        document.getElementById('alert-container').style.display = 'block';
                     } else {
-                        queuePositionElem.classList.remove('text-success', 'blinking');
-                        alertContainer.style.display = 'none';
+                        document.getElementById('queue-position').classList.remove('text-success', 'blinking');
+                        document.getElementById('alert-container').style.display = 'none';
                     }
 
                     // Redirect when the conference is ready
                     if (conferenceUrl && live) {
-                        queuePositionElem.textContent = 'Entering...';
+                        document.getElementById('queue-position').textContent = 'Entering...';
                         setTimeout(() => {
                             window.location.href = conferenceUrl;
                         }, 5000);
@@ -79,8 +143,7 @@
         // Function to update the current time every second
         function updateTime() {
             const now = new Date();
-            const currentTimeElem = document.getElementById('current-time');
-            currentTimeElem.textContent = now.toLocaleTimeString();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
         }
 
         // Call updateQueueStatus initially and set it to repeat every 5 seconds

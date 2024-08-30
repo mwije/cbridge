@@ -1,7 +1,8 @@
 from ..extensions import db
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.orm import Mapped
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 
 from wtforms.validators import DataRequired, Length, Email, Optional
@@ -17,6 +18,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(120), nullable=False)
     date_birth = db.Column(db.Date, nullable=False)
     identification = db.Column(db.String(15), nullable=True)
+    sex = db.Column(db.String(6), nullable=True)
 
     telephone = db.Column(db.String(16), nullable=True)
     email = db.Column(db.String(120), nullable=True)
@@ -38,6 +40,15 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return self.uid
+
+    def age(self):
+        today = date.today()
+        if self.date_birth:
+            age = today.year - self.date_birth.year - ((today.month, today.day) < (self.date_birth.month, self.date_birth.day))
+        else:
+            age = None
+        return age
+    
 
     @classmethod
     def custom_constraints(cls):
@@ -73,6 +84,58 @@ class User(UserMixin, db.Model):
     def get_roles(self):
         return [role.slug for role in self.roles]
 
+    def role_assign(self, role_slug):
+        try:
+            # Find the role by slug
+            role = Role.query.filter_by(slug=role_slug).first()
+            if not role:
+                return f"Role '{role_slug}' not found."
+
+            # Check if the role is already assigned to the user
+            user_role = UserRole.query.filter_by(uid=self.uid, role_id=role.id).first()
+            if user_role:
+                return f"User already has the role '{role_slug}'."
+
+            # Assign the role to the user
+            new_user_role = UserRole(uid=self.uid, role_id=role.id)
+            db.session.add(new_user_role)
+
+            # Additional logic based on role_slug
+            if role_slug == 'client':
+                new_patient = Patient(uid=self.uid)
+                db.session.add(new_patient)
+            elif role_slug == 'clinician':
+                new_clinician = Clinician(uid=self.uid)
+                db.session.add(new_clinician)
+
+
+            db.session.commit()
+            return f"Role '{role_slug}' assigned successfully."
+
+        except SQLAlchemyError as e:
+            db.session.rollback()  # Rollback in case of any error
+            return f"Error assigning role: {str(e)}"
+
+    def role_remove(self, role_slug):
+        try:
+            # Find the role by slug
+            role = Role.query.filter_by(slug=role_slug).first()
+            if not role:
+                return f"Role '{role_slug}' not found."
+
+            # Check if the user has the role
+            user_role = UserRole.query.filter_by(uid=self.uid, role_id=role.id).first()
+            if not user_role:
+                return f"User does not have the role '{role_slug}'."
+
+            # Remove the role from the user
+            db.session.delete(user_role)
+            db.session.commit()
+            return f"Role '{role_slug}' removed successfully."
+
+        except SQLAlchemyError as e:
+            db.session.rollback()  # Rollback in case of any error
+            return f"Error removing role: {str(e)}"
 
 class Role(db.Model):
     __tablename__ = 'roles'

@@ -19,7 +19,7 @@ def register_blueprints(app):
     logging.info('blueprint book registered')
     app.register_blueprint(consult_bp)
     logging.info('blueprint consult registered')
-    app.register_blueprint(emr_bp, url_prefix='/patient')
+    app.register_blueprint(emr_bp)
     logging.info('blueprint emr registered')
     
     @app.errorhandler(404)

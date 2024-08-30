@@ -28,6 +28,30 @@ class Schedule(db.Model):
             'password': [Length(min=3, max=30)],
             'email': [Optional(), Email()]
         }
+    
+    def appointments_by_status_count(self, status):
+        return sum(1 for appointment in self.appointments if appointment.status == status)
+    
+    def appointments_total_count(self):
+        return len(self.appointments)
+
+    def session_start(self):
+        for appointment in self.appointments:
+            if appointment.status in ['', 'ongoing', None]:
+                appointment.status = 'queued'
+                
+
+    def session_stop(self):
+        for appointment in self.appointments:
+            if appointment.status in ['queued', 'ongoing']:
+                appointment.status = ''
+    
+    def patients_last_seen_update(self, uid):
+        current_datetime = datetime.now().isoformat()  # Get the current datetime in ISO 8601 format
+        self.notes[uid] = current_datetime
+    
+    def patients_last_seen_get(self):
+        return json.dumps(self.notes)
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
@@ -43,6 +67,8 @@ class Appointment(db.Model):
     patient: Mapped['Patient'] = db.relationship(back_populates='appointments')
     schedule: Mapped['Schedule'] = db.relationship(back_populates='appointments')
     conference: Mapped['Conference'] = db.relationship(back_populates='appointment')
+
+
 
 class Conference(db.Model):
     __tablename__ = 'conferences'

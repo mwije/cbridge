@@ -11,7 +11,7 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-
+      
     {% with messages = get_flashed_messages()%}
         {% if messages%}
             <div class="alert alert-primary alert-dismissible fade show" role="alert">
@@ -30,6 +30,35 @@
     {% endwith %}
     
     <div class="container">
+    <script>
+        function updateDateTime() {
+            const dateTimeStrip = document.getElementById('date-time-strip');
+            const now = new Date();
+            
+            const dateOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+            };
+            
+            const timeOptions = { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit', 
+                hour12: false 
+            };
+
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+            const formattedTime = now.toLocaleTimeString('en-US', timeOptions);
+            
+            // Set the date and time, with time on a new line
+            dateTimeStrip.innerHTML = `${formattedDate}<br>${formattedTime}`;
+        }
+    
+        setInterval(updateDateTime, 1000); // Update every second
+        document.addEventListener('DOMContentLoaded', updateDateTime); // Initial call
+    </script>
         {%block content %}
         {% endblock %}
     </div>

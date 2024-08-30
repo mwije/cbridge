@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 
+
 from cbridge.models.user import User
 from cbridge.extensions import db, bcrypt
 
@@ -74,11 +75,15 @@ def register():
                 identification = form.identification.data,
                 telephone = form.telephone.data,
                 email = form.email.data,
-                address = form.address.data
+                address = form.address.data,
+                sex = "male"
                 )
             
             db.session.add(new_user)
             db.session.commit()
+
+            # assign patient role
+            new_user.role_assign('client')
 
             flash('Account created successfully!')
             return redirect(url_for('auth.login'))

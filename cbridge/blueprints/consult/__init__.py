@@ -1,31 +1,45 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
-from cbridge.decorators import role_required
+from cbridge.decorators import role_required, login_required
 from cbridge.models.user import *
 from cbridge.extensions import db, bcrypt
 
 from .forms import *
+from .jwt import generate_jwt
 import random, string
 from datetime import datetime, date
 
 consult_bp = Blueprint('consult', __name__)
 
 @consult_bp.route('/staging', methods=['GET', 'POST'])
+@consult_bp.route('/staging/', methods=['GET', 'POST'])
+@consult_bp.route('/staging/<int:schedule_id>', methods=['GET', 'POST'])
 @role_required('clinician')
-def staging():
-    form = QueueControlForm()
+def staging(schedule_id=None):
     thedate = datetime.today().date()
-    thedate = date(2024,8,29)
-    appointments = db.session.query(Appointment).join(Schedule).filter(
-        Schedule.date == thedate, Schedule.clinician_id == current_user.clinician.id
+
+    # All schedules of clinician
+    schedules = Schedule.query.filter(
+        Schedule.clinician_id==current_user.clinician.id,
+        Schedule.date >= thedate
+    ).order_by(Schedule.date).all()
+    
+    if schedule_id == None:
+        # Set view for current date/closest schedule date
+        nearest_schedule = min(schedules, key=lambda x: abs(x.date - thedate))
+        schedule_id = nearest_schedule.id
+
+    # All appointments for selected schedule
+    appointments = db.session.query(Appointment).filter(
+        Appointment.schedule_id==schedule_id
     ).order_by(Appointment.id.asc()).all()
 
-    # Populate the RadioField with patient names and appointment IDs
-    form.patient.choices = [(appt.id, f"{appt.patient.user.name} - {appt.datetime.strftime('%H:%M')}") for appt in appointments]
-
-    if form.validate_on_submit():
+    if request.method == 'POST':
         # Find the selected appointment
-        selected_appointment = Appointment.query.get(form.patient.data)
+        
+        appointment_id = request.form.get('selected_appointment')
+        
+        selected_appointment = Appointment.query.filter(Appointment.id==appointment_id).first()
    
         # Check if a Conference already exists for this appointment
         existing_conference = db.session.query(Conference).filter_by(appointment_id=selected_appointment.id).first()
@@ -46,8 +60,8 @@ def staging():
 
         # Redirect clinician to the /tele page
         return redirect(url_for('consult.consultation', conference_id=conference.id))
-
-    return render_template('lobby_clinician.html', thedate=thedate, queue_form=form)
+    print('current session', session['current_schedule'], schedule_id)
+    return render_template('lobby_clinician.html', schedules=schedules, appointments=appointments, thedate=thedate, schedule_id=schedule_id)
 
 @consult_bp.route('/lobby', methods=['GET', 'POST'])
 @role_required('client')
@@ -67,6 +81,7 @@ def lobby():
     return render_template('lobby_patient.html', thedate=thedate, appointment=appointment, clinician=clinician)
 
 @consult_bp.route('/appointment/<int:appointment_id>/status', methods=['GET'])
+@login_required
 def get_appointment_status(appointment_id):
     # Retrieve the appointment record
     appointment = db.session.query(Appointment).filter(
@@ -78,7 +93,7 @@ def get_appointment_status(appointment_id):
         return jsonify({'error': 'Appointment not found or inactive'}), 404
 
     # Get the status and conference URL
-    status = appointment.status  # Assuming 'status' is a column in your Appointment model
+    status = appointment.status
     #conference = ( current_app.config['VIDEO_HOST_URL'] + appointment.conference.url) if appointment.conference else None
     conference = url_for('consult.consultation', conference_id=appointment.conference.id) if appointment.conference else None
     live = appointment.conference.active if appointment.conference else None
@@ -96,13 +111,18 @@ def get_appointment_status(appointment_id):
     appointment_number = next((index + 1 for index, a in enumerate(appointments) if a.id == appointment.id), None)
 
     # Determine the current queue position based on status and ID
-    queued_appointments = [a for a in appointments if a.status in ['', 'queued', None]]
+    scheduled_appointments = [a for a in appointments if a.status in ['', None]]
+    queued_appointments = [a for a in appointments if a.status in ['queued']]
+    completed_appointments = [a for a in appointments if a.status in ['completed']]
     queue_position = next((index + 1 for index, a in enumerate(queued_appointments) if a.id == appointment.id), None)
 
     # Return status as JSON, including the dynamic queue position
     return jsonify({
-        'status': status,
-        'total': total_appointments,
+        'appointment_status': status,
+        'total_appointments': total_appointments,
+        'scheduled_appointments': len(scheduled_appointments),
+        'queued_appointments': len(queued_appointments),
+        'completed_appointments': len(completed_appointments),
         'appointment_number': appointment_number,
         'queue_position': queue_position,
         'conference': conference,
@@ -110,6 +130,7 @@ def get_appointment_status(appointment_id):
     })
 
 @consult_bp.route('/appointment/<int:appointment_id>/close', methods=['GET'])
+@role_required('clinician')
 def conclude_appointment(appointment_id):
     # Authorized clinician?
     appointment = db.session.query(Appointment).filter(
@@ -120,12 +141,49 @@ def conclude_appointment(appointment_id):
     return jsonify({}), 200
 
 @consult_bp.route('/consultation/<int:conference_id>', methods=['GET', 'POST'])
-@role_required('clinician')
+@role_required('clinician', 'client')
 def consultation(conference_id):
     conference = Conference.query.get(conference_id)
     conference.exclusive_open()
+    jwt = generate_jwt(user=current_user, conference=conference)
+    
+    if session['current_role'] == 'clinician':
+        lobby_url = url_for('consult.staging')
+    else:
+        lobby_url = url_for('consult.lobby')
+
     if not conference:
         flash("Conference not found.", "error")
         return redirect(url_for('consult.staging'))
 
-    return render_template('teleconsult.html', conference=conference, VIDEO_HOST_DOMAIN=current_app.config['VIDEO_HOST_DOMAIN'], VIDEO_HOST_URL=current_app.config['VIDEO_HOST_URL'])
+    return render_template('teleconsult.html', conference=conference, jwt=jwt, lobby_url=lobby_url, VIDEO_HOST_DOMAIN=current_app.config['VIDEO_HOST_DOMAIN'], VIDEO_HOST_URL=current_app.config['VIDEO_HOST_URL'])
+
+@consult_bp.route('/schedule/<int:schedule_id>/session', methods=['POST'])
+@role_required('clinician')
+def set_current_schedule(schedule_id):
+    data = request.json
+    active = data.get('active', False)
+    schedule = Schedule.query.filter(Schedule.id==schedule_id).first()
+
+    schedule_old = None
+    if session['current_schedule']:
+        schedule_old = Schedule.query.filter(Schedule.id==session['current_schedule']).first()
+
+    if active:
+        if schedule.appointments:
+            session['current_schedule'] = schedule.id
+            schedule.session_start()
+            if schedule_old: schedule_old.session_stop()
+            
+            db.session.commit()
+            
+            return jsonify(success=True)
+            
+        else:
+            
+            return jsonify(success=False), 400
+    else:
+        session['current_schedule'] = None
+        schedule.session_stop()
+        db.session.commit()
+        return jsonify(success=True)

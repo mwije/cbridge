@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from cbridge.decorators import role_required
 from cbridge.models.user import *
@@ -67,3 +67,21 @@ def management_plan(patient_id):
         return redirect(url_for('emr.management_plan', patient_id=patient_id))
     plan = ManagementPlan.query.filter_by(patient_id=patient_id).first()
     return render_template('management_plan.html', plan=plan)
+
+@emr_bp.route('/patient/<int:patient_id>/summary/json')
+@role_required('clinician')
+def patient_summary_json(patient_id):
+    patient = Patient.query.filter_by(id=patient_id).first()
+    
+    # Constructing the patient summary as a dictionary
+    patient_summary = {
+        'name': patient.user.name,
+        'age': patient.user.age(),
+        'sex': patient.user.sex,
+        #'medical_history': patient.medical_history,
+        #'allergies': patient.allergies,
+        #'current_medications': patient.current_medications,
+        #'last_visit': patient.last_visit.strftime('%Y-%m-%d') if patient.last_visit else 'N/A'
+    }
+    
+    return jsonify(patient_summary)

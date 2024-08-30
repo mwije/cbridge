@@ -20,7 +20,7 @@
     
     <!-- Upcoming and Active Bookings -->
     <div id="upcoming-bookings">
-        {% for booking in bookings if not booking.date | is_past %}
+        {% for booking in bookings if not booking.date | is_past(booking.time_start) %}
             {% include 'schedule_snippet.html' %}
         {% endfor %}
     </div>

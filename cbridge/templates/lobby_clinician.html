@@ -3,20 +3,175 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
     <h1>{{ title }}</h1>
-    <h2>{{ thedate }}</h2>
-    <!-- Form for adding a new schedule -->
-    <form method='POST' action="{{ url_for('consult.staging') }}">
-        {% for field in queue_form %}
-            {% if field.type not in ['UnboundField'] %}
-                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
-                    {{ field.label }}
-                {% endif %}
-                {{ field }} <br>
-            {% endif %}
-        {% endfor %}
-    </form>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Sidebar: Schedules List -->
+            <div class="col-md-3">
+                <ul class="list-group">
+                    {% for schedule in schedules %}
+                        <li class="list-group-item {% if schedule.id == selected_schedule_id %}active{% endif %}">
+                            <a href="{{ url_for('consult.staging', schedule_id=schedule.id) }}" class="{% if schedule.id == selected_schedule_id %}text-white{% endif %}">
+                                {{ schedule.date }} ({{ schedule.time_start }} - {{ schedule.time_end }})
+                                {% if schedule.clinic and schedule.clinic.address %}
+                                    @ {{ schedule.clinic.address }}
+                                {% endif %}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
     
-    <br>
+            <!-- Middle Section: Appointments List -->
+            <div class="col-md-5">
+                {% if appointments %}
+                    <!-- Toggle button to mark active schedule -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Appointments</h4>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="toggle-schedule" 
+                            {% if session['current_schedule'] != schedule_id %}unchecked{% else %}checked{% endif %}>
+                            <label class="custom-control-label" for="toggle-schedule">Active</label>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if session.current_schedule and session.current_schedule.id != selected_schedule_id %}
+                    <div class="alert alert-warning">
+                        You are currently working on another schedule: 
+                        <a href="{{ url_for('consult.staging', schedule_id=session.current_schedule.id) }}" class="alert-link">
+                            {{ session.current_schedule.date }} ({{ session.current_schedule.time_start }} - {{ session.current_schedule.time_end }})
+                        </a>
+                    </div>
+                {% endif %}
+
+                <form id="appointment-form" method="POST" action="{{ url_for('consult.staging') }}">
+                    
+                    <ul class="list-group">
+                        {% for appointment in appointments %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="appointment{{ appointment.id }}" name="selected_appointment" class="custom-control-input" value="{{ appointment.id }}" data-patient-id="{{ appointment.patient_id }}" {% if loop.first %}checked{% endif %}>
+                                    <label class="custom-control-label" for="appointment{{ appointment.id }}">
+                                        {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{ appointment.patient.sex }}
+                                    </label>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <!-- Submit button is placed dynamically using JavaScript -->
+                    {% if appointments %}
+                    <button type="submit" id="submit-button" class="btn btn-primary mt-3">Select Appointment</button>
+                    {% endif %}
+                </form>
+            </div>
+    
+            <!-- Right Sidebar: Patient Details -->
+            <div class="col-md-4" id="patient-details">
+                {% if appointments %}
+                <h4>Patient Details</h4>
+                <p><strong>Name:</strong> <span id="patient-name">Select an appointment</span></p>
+                <p><strong>Age:</strong> <span id="patient-age">-</span> years</p>
+                <p><strong>Sex:</strong> <span id="patient-sex">-</span></p>
+                <p><strong>Medical History:</strong> <span id="patient-medical-history">-</span></p>
+                <p><strong>Allergies:</strong> <span id="patient-allergies">-</span></p>
+                <p><strong>Current Medications:</strong> <span id="patient-current-medications">-</span></p>
+                <p><strong>Last Visit:</strong> <span id="patient-last-visit">-</span></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Animated banner for success/failure notifications -->
+    <div id="notification-banner" class="alert alert-info alert-dismissible fade show" role="alert" style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1050;">
+        <span id="notification-message"></span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleSchedule = document.getElementById('toggle-schedule');
+            const form = document.getElementById('appointment-form');
+            const submitButton = document.getElementById('submit-button');
+            const notificationBanner = document.getElementById('notification-banner');
+            const notificationMessage = document.getElementById('notification-message');
+
+            // Initialize the toggle state and form elements based on active schedule
+            if (!toggleSchedule.checked) {
+                form.querySelectorAll('input[name="selected_appointment"]').forEach(input => input.disabled = true);
+                if (submitButton) submitButton.disabled = true;
+            }
+
+            // Toggle schedule active state
+            toggleSchedule.addEventListener('change', function() {
+                const isActive = toggleSchedule.checked;
+                fetch(`/schedule/{{ schedule_id }}/session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        
+                    },
+                    body: JSON.stringify({ active: isActive })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (isActive) {
+                            notificationMessage.textContent = 'This schedule is now active.';
+                            form.querySelectorAll('input[name="selected_appointment"]').forEach(input => input.disabled = false);
+                            if (submitButton) submitButton.disabled = false;
+                        } else {
+                            notificationMessage.textContent = 'The schedule is no longer active.';
+                            form.querySelectorAll('input[name="selected_appointment"]').forEach(input => input.disabled = true);
+                            if (submitButton) submitButton.disabled = true;
+                        }
+                        showNotification();
+                    } else {
+                        notificationMessage.textContent = 'Failed to update the schedule.';
+                        toggleSchedule.checked = !isActive;  // Revert the toggle state
+                        showNotification();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating schedule:', error);
+                    notificationMessage.textContent = 'An error occurred while updating the schedule.';
+                    toggleSchedule.checked = !isActive;  // Revert the toggle state
+                    showNotification();
+                });
+            });
+
+            // Function to show notification banner
+            function showNotification() {
+                notificationBanner.style.display = 'block';
+                setTimeout(() => {
+                    notificationBanner.style.display = 'none';
+                }, 3000);
+            }
+
+            // Load patient details when an appointment is selected
+            form.addEventListener('change', function(event) {
+                if (event.target.name === 'selected_appointment' && toggleSchedule.checked) {
+                    const appointmentId = event.target.value;
+                    const patientId = event.target.dataset.patientId;
+
+                    fetch(`/patient/${patientId}/summary/json`)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('patient-name').textContent = data.name;
+                            document.getElementById('patient-age').textContent = data.age;
+                            document.getElementById('patient-sex').textContent = data.sex;
+                            // Additional details...
+                            document.getElementById('patient-medical-history').textContent = data.medical_history;
+                            document.getElementById('patient-allergies').textContent = data.allergies;
+                            document.getElementById('patient-current-medications').textContent = data.current_medications;
+                            document.getElementById('patient-last-visit').textContent = data.last_visit;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching patient details:', error);
+                        });
+                }
+            });
+        });
+
+    </script>
     
      
 {% endblock %}
