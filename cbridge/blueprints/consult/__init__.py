@@ -60,7 +60,7 @@ def staging(schedule_id=None):
 
         # Redirect clinician to the /tele page
         return redirect(url_for('consult.consultation', conference_id=conference.id))
-    print('current session', session['current_schedule'], schedule_id)
+    
     return render_template('lobby_clinician.html', schedules=schedules, appointments=appointments, thedate=thedate, schedule_id=schedule_id)
 
 @consult_bp.route('/lobby', methods=['GET', 'POST'])
@@ -71,6 +71,10 @@ def lobby():
         Appointment.patient_id == current_user.patient.id,
         Appointment.active == True
     ).order_by(Appointment.id.desc()).all()
+
+    if not appointments:
+        flash("No appointments for user. Make a booking")
+        return redirect(url_for('book.booking'))
     appointment = appointments[0]
     # TODO: what if multiple appointments are pending
 
@@ -92,6 +96,8 @@ def get_appointment_status(appointment_id):
     if not appointment:
         return jsonify({'error': 'Appointment not found or inactive'}), 404
 
+    # Update last seen
+    appointment.schedule.patients_last_seen_update(current_user.uid)
     # Get the status and conference URL
     status = appointment.status
     #conference = ( current_app.config['VIDEO_HOST_URL'] + appointment.conference.url) if appointment.conference else None
@@ -166,7 +172,7 @@ def set_current_schedule(schedule_id):
     schedule = Schedule.query.filter(Schedule.id==schedule_id).first()
 
     schedule_old = None
-    if session['current_schedule']:
+    if session.get('current_schedule'):
         schedule_old = Schedule.query.filter(Schedule.id==session['current_schedule']).first()
 
     if active:
@@ -187,3 +193,41 @@ def set_current_schedule(schedule_id):
         schedule.session_stop()
         db.session.commit()
         return jsonify(success=True)
+
+@consult_bp.route('/schedule/<int:schedule_id>/status', methods=['GET'])
+@role_required('clinician')
+def get_schedule_status(schedule_id):
+    # Retrieve the appointment record
+    schedule = db.session.query(Schedule).filter(
+        Schedule.id == schedule_id,
+        Schedule.active == True
+    ).first()
+
+    if not schedule:
+        return jsonify({'error': 'Schedule not found or inactive'}), 404
+
+    # Get last seen users
+    last_seen = schedule.patients_last_seen_get()
+    
+    # Get all active appointments for the same schedule, ordered by ID
+    appointments = db.session.query(Appointment).filter(
+        Appointment.schedule_id == schedule_id,
+        Appointment.active == True
+    ).order_by(Appointment.id).all()
+
+    # Calculate the total number of active appointments
+    total_appointments = len(appointments)
+
+    # Determine the current queue position based on status and ID
+    scheduled_appointments = [a for a in appointments if a.status in ['', None]]
+    queued_appointments = [a for a in appointments if a.status in ['queued']]
+    completed_appointments = [a for a in appointments if a.status in ['completed']]
+
+    # Return status as JSON, including the dynamic queue position
+    return jsonify({
+        'last_seen_users': last_seen,
+        'total_appointments': total_appointments,
+        'scheduled_appointments': len(scheduled_appointments),
+        'queued_appointments': len(queued_appointments),
+        'completed_appointments': len(completed_appointments),
+    })

@@ -22,7 +22,7 @@
             </div>
     
             <!-- Middle Section: Appointments List -->
-            <div class="col-md-5">
+            <div class="col-md-6">
                 {% if appointments %}
                     <!-- Toggle button to mark active schedule -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -45,8 +45,7 @@
                 {% endif %}
 
                 <form id="appointment-form" method="POST" action="{{ url_for('consult.staging') }}">
-                    
-                    <ul class="list-group">
+                    <ul class="list-group" id="appointment-list">
                         {% for appointment in appointments %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div class="custom-control custom-radio">
@@ -55,6 +54,7 @@
                                         {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{ appointment.patient.sex }}
                                     </label>
                                 </div>
+                                <label class="last-seen"></label>
                             </li>
                         {% endfor %}
                     </ul>
@@ -64,9 +64,30 @@
                     {% endif %}
                 </form>
             </div>
-    
+            
+            <!-- Right Sidebar: Appointment Statistics and Patient Details -->
+            <div class="col-md-3">
+                <!-- Appointment Statistics Section -->
+                <div id="appointment-stats" class="border p-3 mb-3">
+                    <h4>Appointment Statistics</h4>
+                    <div class="d-flex flex-column">
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Completed:</strong> <span id="completed-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Queued:</strong> <span id="queued-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Scheduled:</strong> <span id="scheduled-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <p><strong>Total:</strong> <span id="total-appointments">0</span></p>
+                        </div>
+                    </div>
+                </div>
+
             <!-- Right Sidebar: Patient Details -->
-            <div class="col-md-4" id="patient-details">
+                <div id="patient-details" class="border p-3">
                 {% if appointments %}
                 <h4>Patient Details</h4>
                 <p><strong>Name:</strong> <span id="patient-name">Select an appointment</span></p>
@@ -77,6 +98,7 @@
                 <p><strong>Current Medications:</strong> <span id="patient-current-medications">-</span></p>
                 <p><strong>Last Visit:</strong> <span id="patient-last-visit">-</span></p>
                 {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -93,6 +115,7 @@
             const submitButton = document.getElementById('submit-button');
             const notificationBanner = document.getElementById('notification-banner');
             const notificationMessage = document.getElementById('notification-message');
+            const scheduleId = '{{ schedule_id }}';
 
             // Initialize the toggle state and form elements based on active schedule
             if (!toggleSchedule.checked) {
@@ -169,7 +192,63 @@
                         });
                 }
             });
-        });
+
+            // Function to fetch appointment status and update UI
+        function fetchScheduleStatus() {
+            fetch(`/schedule/${scheduleId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update appointment statistics
+                    document.getElementById('total-appointments').textContent = data.total_appointments;
+                    document.getElementById('scheduled-appointments').textContent = data.scheduled_appointments;
+                    document.getElementById('queued-appointments').textContent = data.queued_appointments;
+                    document.getElementById('completed-appointments').textContent = data.completed_appointments;
+
+            // Helper function to format the relative time
+            function formatRelativeTime(lastSeenDate) {
+                const now = new Date();
+                const lastSeen = new Date(lastSeenDate);
+                const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+
+                if (diffInSeconds < 30) {
+                    return 'now';
+                } else if (diffInSeconds < 60) {
+                    return `${diffInSeconds} seconds ago`;
+                } else if (diffInSeconds < 3600) {
+                    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+                } else if (diffInSeconds < 86400) {
+                    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+                } else if (diffInSeconds < 2592000) { // 30 days
+                    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+                } else if (diffInSeconds < 31536000) { // 365 days
+                    return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+                } else {
+                    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
+                }
+            }
+
+            // Update last seen users
+            const lastSeen = data.last_seen_users;
+            document.querySelectorAll('#appointment-list .list-group-item').forEach(item => {
+                const patientId = item.querySelector('input').dataset.patientId;
+                const lastSeenDate = lastSeen[patientId];
+                if (lastSeenDate) {
+                    const formattedTime = formatRelativeTime(lastSeenDate);
+                    item.querySelector('.last-seen').textContent = `${formattedTime}`;
+                }
+            });
+                })
+                .catch(error => {
+                    console.error('Error fetching appointment status:', error);
+                });
+        }
+
+        // Fetch data every 30 seconds
+        setInterval(fetchScheduleStatus, 2000);
+
+        // Initial fetch
+        fetchScheduleStatus();
+    });
 
     </script>
     

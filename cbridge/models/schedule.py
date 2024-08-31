@@ -2,6 +2,7 @@ from .user import *
 from .clinic import *
 from sqlalchemy.orm import Mapped
 from typing import List
+import json
 
 from wtforms.validators import DataRequired, Length, Email, Optional, NumberRange
 
@@ -15,6 +16,7 @@ class Schedule(db.Model):
     max_bookings = db.Column(db.Integer, nullable=False)
     time_start = db.Column(db.Time, nullable=False)
     time_end = db.Column(db.Time, nullable=False)
+    log = db.Column(db.String(100), nullable=True, default='{}')
     active = db.Column(db.Boolean, default=True)
 
     clinician: Mapped['Clinician'] = db.relationship(back_populates='schedules')
@@ -47,11 +49,23 @@ class Schedule(db.Model):
                 appointment.status = ''
     
     def patients_last_seen_update(self, uid):
+        # Deserialize the current log into a dictionary
+        if self.log == None or self.log == '':
+            log_dict = {}
+        else:
+            log_dict = json.loads(self.log)
+            
+        # Update the dictionary with the new uid and timestamp
         current_datetime = datetime.now().isoformat()  # Get the current datetime in ISO 8601 format
-        self.notes[uid] = current_datetime
-    
+        log_dict[str(uid)] = current_datetime
+        
+        # Serialize the updated dictionary back into a JSON string
+        self.log = json.dumps(log_dict)
+        db.session.commit()
+        
     def patients_last_seen_get(self):
-        return json.dumps(self.notes)
+        # Deserialize the log into a dictionary and return it
+        return json.loads(self.log)
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
