@@ -26,7 +26,7 @@ def staging(schedule_id=None):
     
     if schedule_id == None:
         # Set view for current date/closest schedule date
-        if Schedule:
+        if schedules:
             nearest_schedule = min(schedules, key=lambda x: abs(x.date - thedate))
             schedule_id = nearest_schedule.id
         else:
