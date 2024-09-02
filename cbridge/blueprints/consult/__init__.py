@@ -26,9 +26,12 @@ def staging(schedule_id=None):
     
     if schedule_id == None:
         # Set view for current date/closest schedule date
-        nearest_schedule = min(schedules, key=lambda x: abs(x.date - thedate))
-        schedule_id = nearest_schedule.id
-
+        if Schedule:
+            nearest_schedule = min(schedules, key=lambda x: abs(x.date - thedate))
+            schedule_id = nearest_schedule.id
+        else:
+            flash('You have no schedules. Create some')
+            return redirect('home.index')
     # All appointments for selected schedule
     appointments = db.session.query(Appointment).filter(
         Appointment.schedule_id==schedule_id
