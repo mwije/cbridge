@@ -24,7 +24,12 @@ def render_userview(uid):
 
 def render_roleview(uid):
     roledata= {}
-    match session.get('current_role'):
+    if session.get('current_role'):
+        current_role=session.get('current_role')
+    else:
+        current_role=''
+
+    match current_role:
         case 'client':
             print('USER ROLE:', current_user.patient)
             if current_user.patient:
@@ -34,15 +39,14 @@ def render_roleview(uid):
             if current_user.clinician:
                 roledata = get_fieldvalues(Clinician, current_user.clinician)
         case default:
-            error = f'invalid role { session.get('current_role') }'
-            print(error)
+            
             return error
 
     if roledata:
         
-        return render_template('userinfo.html', fields=roledata, title=session.get('current_role') )
+        return render_template('userinfo.html', fields=roledata, title=current_role )
     else:
-        return f'{ session.get('current_role') } role is not authorized for user: {current_user.username}'
+        return f'{ current_role } role is not authorized for user: {current_user.username}'
 
 def get_fieldvalues(table, instance):
     fielddata = {}

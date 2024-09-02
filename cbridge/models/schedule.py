@@ -75,12 +75,13 @@ class Appointment(db.Model):
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedules.id'))
     status = db.Column(db.String(20), nullable=True)
     notes = db.Column(db.String(50), nullable=True)
-    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     active = db.Column(db.Boolean, default=True)
 
     patient: Mapped['Patient'] = db.relationship(back_populates='appointments')
     schedule: Mapped['Schedule'] = db.relationship(back_populates='appointments')
     conference: Mapped['Conference'] = db.relationship(back_populates='appointment')
+    encounter: Mapped['Encounter'] = db.relationship(back_populates='appointment')
 
 
 

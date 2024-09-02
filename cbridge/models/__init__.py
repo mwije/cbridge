@@ -1,6 +1,9 @@
 from .field_labels import label_mapping
 from .user import *
 from .schedule import *
+from .encounter import *
+from .library import *
+from .health import *
 
 # Add more models as needed
 

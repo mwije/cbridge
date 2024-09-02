@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from datetime import datetime, date
 from sqlalchemy.orm import Mapped
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Dict, Any
 
 from wtforms.validators import DataRequired, Length, Email, Optional
 
@@ -157,9 +157,34 @@ class Patient(db.Model):
     note = db.Column(db.String(50), nullable=True)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
-
     user: Mapped['User'] = db.relationship(back_populates='patient')
     appointments: Mapped[List['Appointment']] = db.relationship(back_populates='patient')
+    allergies: Mapped[List['Allergy']] = db.relationship(back_populates='patient')
+    problems: Mapped[List['Problem']] = db.relationship(back_populates='patient')
+
+    def problems_json(self, past_records: bool = False) -> List[Dict[str, Any]]:
+        return Problem.query.filter_by(patient_id=self.id).summary(past_records=past_records)
+
+    def allergies_json(self) -> List[Dict[str, Any]]:
+        return [allergy.summary() for allergy in self.allergies]
+
+    def appointment_list(self, status: str = None) -> List['Appointment']:
+        query = Appointment.query.filter_by(patient_id=self.id)
+        if status:
+            query = query.filter_by(status=status)
+        return query.all()
+
+    def encounter_list(self) -> List['Encounter']:
+        appointments = self.appointment_list(status='completed')
+        return [appointment.encounter for appointment in appointments if appointment.encounter]
+
+    def encounter_latest(self):
+        encounters = self.encounter_list()
+        return max(encounters, key=lambda e: e.id, default=None)
+
+    def appointment_latest(self):
+        appointments = self.appointment_list()
+        return max(appointments, key=lambda a: a.id, default=None)
 
 class Clinician(db.Model):
     __tablename__ = 'clinicians'

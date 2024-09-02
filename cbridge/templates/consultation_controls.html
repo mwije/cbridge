@@ -1,0 +1,43 @@
+<div class="consultation-controls" style="display: inline;">
+    <button id="cancel-consult" class="btn btn-danger">Cancel Consultation</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Handle Sign Toggle
+    $('#sign-toggle').on('click', function() {
+        const signState = $(this).text() === 'Sign';
+        fetch(`{{ url_for('consult.sign_prescription', appointment_id=conference.appointment_id) }}`, {
+            method: 'POST',
+            body: JSON.stringify({ signed: signState }),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin'
+        }).then(() => {
+            $(this).text(signState ? 'Unsign' : 'Sign');
+        });
+    });
+
+    // Handle Consultation Completion
+    $('#complete-consult').on('click', function() {
+        if ($('#sign-toggle').text() !== 'Unsign') {
+            alert("Please sign the prescription before completing the consultation.");
+        } else {
+            $('#confirmationModal').modal('show');
+            startCooldown('Consultation completed', false);
+        }
+    });
+
+    // Handle Consultation Cancellation
+    $('#cancel-consult').on('click', function() {
+        fetch("{{ url_for('consult.conclude_appointment', appointment_id=conference.appointment_id) }}", {
+            method: 'POST',
+            body: JSON.stringify({ conclusion: 2 }),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin'
+        }).then(() => {
+            window.location.href = '{{ lobby_url }}';
+        });
+    });
+});
+</script>

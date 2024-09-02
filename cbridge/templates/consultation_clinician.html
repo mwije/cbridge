@@ -1,0 +1,29 @@
+    <!-- Patient Header Information -->
+    {% include 'emr/patient_header.html' %}
+    <input type="hidden" id="appointment-id" value="{{appointment.id}}">
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" id="emrTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="demographics-tab" data-toggle="tab" href="#demographics" role="tab">Demographics</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="presentation-tab" data-toggle="tab" href="#presentation" role="tab">Presentation</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="lab-tab" data-toggle="tab" href="#lab" role="tab">Lab</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="management-tab" data-toggle="tab" href="#management" role="tab">Management</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="emrTabContent">
+        {% include 'emr/patient_demographics.html' %}
+        {% include 'emr/presentation.html' %}
+        {% include 'emr/lab.html' %}
+        {% include 'emr/management.html' %}
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='emr.js') }}"></script>

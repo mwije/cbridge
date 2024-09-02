@@ -1,0 +1,105 @@
+<div class="tab-pane fade" id="management" role="tabpanel" aria-labelledby="management-tab">
+    <div class="row mt-3">
+        <!-- Ongoing Medications -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Ongoing Medications</h5>
+                </div>
+                <div class="card-body">
+                    <form id="medications-form">
+                        {% if ongoing_prescriptions %}
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Continue</th>
+                                    <th>Drug Name</th>
+                                    <th>Instruction</th>
+                                    <th>Duration (days)</th>
+                                    <th>Prescribed On</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ongoing-medications-table">
+                                {% for prescription in ongoing_prescriptions %}
+                                <tr data-prescription-id="{{ prescription.id }}">
+                                    <td>
+                                        <input type="checkbox" class="continue-checkbox" checked>
+                                        <span class="discontinue-label text-danger d-none">Discontinue</span>
+                                    </td>
+                                    <td>{{ prescription.drug.name }}</td>
+                                    <td>{{ prescription.instruction }}</td>
+                                    <td>{{ prescription.duration }}</td>
+                                    <td>{{ prescription.encounter.datetime_start.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                            <p>No ongoing medication</p>
+                        {% endif %}
+                        <hr>
+                        <!-- Add New Prescription -->
+                        <div class="card-header">
+                            <h6>Add New Prescription</h6>
+                        </div>
+                        
+                        <div class="form-row align-items-end">
+                            <div class="form-group col-md-4">
+                                <label for="new-prescription-drug">Drug Name</label>
+                                <input type="text" class="form-control" id="new-prescription-drug" placeholder="Enter drug name">
+                                <input type="hidden" id="new-drug-id">
+                                <div id="drug-suggestions" class="list-group position-absolute"></div>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="new-prescription-instruction">Instruction</label>
+                                <input type="text" class="form-control" id="new-prescription-instruction" placeholder="Enter instruction">
+                                <div id="instruction-suggestions" class="list-group position-absolute"></div>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label for="new-prescription-duration">Duration</label>
+                                <input type="number" class="form-control" id="new-prescription-duration" min="1" placeholder="Days">
+                            </div>
+                            <div class="form-group col-md-2">
+                                <button type="button" class="btn btn-success btn-block" id="add-prescription-btn" disabled>Add</button>
+                            </div>
+                        </div>
+                        <!-- Newly Added Prescriptions Table -->
+                        <table class="table table-bordered mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Drug Name</th>
+                                    <th>Instruction</th>
+                                    <th>Duration (days)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prescription-list">
+                                <!-- New prescriptions will be appended here -->
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Management Notes and Actions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Management Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="management-notes">Notes</label>
+                        <textarea class="form-control" id="management-notes" rows="8">{{ encounter.plan_note if encounter else '' }}</textarea>
+                    </div>
+                    <div class="consultation-controls d-flex flex-column" style="display: inline;">
+                        <button id="generate-prescription" class="btn btn-primary">Generate Prescription</button>
+                        <button id="sign-toggle" class="btn btn-success">Sign</button>
+                        <button id="complete-consult" class="btn btn-secondary">Complete Consultation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

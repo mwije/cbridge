@@ -135,6 +135,63 @@ def get_appointment_status(appointment_id):
         'live': live
     })
 
+@consult_bp.route('/appointment/<int:appointment_id>/plan', methods=['GET', 'POST'])
+@role_required('clinician')
+def generate_plan(appointment_id):
+    # Authorized clinician?
+    appointment = db.session.query(Appointment).filter(
+        Appointment.id == appointment_id,
+    ).order_by(Appointment.id).first()
+
+    # Retrieve the appointment and create the encounter
+    encounter = Encounter.query.filter_by(appointment_id=appointment_id).first()
+    if encounter is None:
+        # Create a new encounter if none exists
+        encounter = Encounter(appointment_id=appointment_id, datetime_start=datetime.utcnow())
+        db.session.add(encounter)
+    
+    encounter.register(
+        reason=data['reason'],
+        history=data['history'],
+        findings=data['findings'],
+        plan_note=data['plan_note']
+    )
+
+    # Add prescriptions
+    for pres in data.get('prescriptions', []):
+        encounter.prescription_add(
+            drug_id=pres['drug_id'],
+            instruction=pres['instruction'],
+            duration=pres['duration']
+        )
+
+    # Generate the plan and create a document TODOS
+    plan_url = encounter.plan_generate_document()
+
+    return jsonify({'success': True, 'document_url': plan_url})
+
+
+def create_plan(reason, history, findings, prescriptions):
+    # Here you should implement the logic to generate your document
+    # For example, you could use a PDF library or another document generator
+    # This function should return the path to the generated document
+    document_path = f"/path/to/generated/documents/plan_{appointment_id}.pdf"
+    
+    # For demonstration, let's assume the document is successfully created
+    return document_path
+
+@consult_bp.route('/appointment/<int:appointment_id>/sign', methods=['GET'])
+@role_required('clinician')
+def sign_prescription(appointment_id):
+    # Authorized clinician?
+    appointment = db.session.query(Appointment).filter(
+        Appointment.id == appointment_id,
+    ).order_by(Appointment.id).first()
+    
+    ## add datetime_end for encounter
+    ## generate document and forward it
+    return jsonify({}), 200
+
 @consult_bp.route('/appointment/<int:appointment_id>/close', methods=['GET'])
 @role_required('clinician')
 def conclude_appointment(appointment_id):
@@ -145,6 +202,8 @@ def conclude_appointment(appointment_id):
     
     appointment.conference.mark_close()
     return jsonify({}), 200
+
+
 
 @consult_bp.route('/consultation/<int:conference_id>', methods=['GET', 'POST'])
 @role_required('clinician', 'client')
@@ -162,7 +221,15 @@ def consultation(conference_id):
         flash("Conference not found.", "error")
         return redirect(url_for('consult.staging'))
 
-    return render_template('teleconsult.html', conference=conference, jwt=jwt, lobby_url=lobby_url, VIDEO_HOST_DOMAIN=current_app.config['VIDEO_HOST_DOMAIN'], VIDEO_HOST_URL=current_app.config['VIDEO_HOST_URL'])
+    return render_template('teleconsult.html',
+        conference=conference,
+        appointment=conference.appointment,
+        patient=conference.appointment.patient,
+        jwt=jwt,
+        lobby_url=lobby_url,
+        VIDEO_HOST_DOMAIN=current_app.config['VIDEO_HOST_DOMAIN'],
+        VIDEO_HOST_URL=current_app.config['VIDEO_HOST_URL']
+        )
 
 @consult_bp.route('/schedule/<int:schedule_id>/session', methods=['POST'])
 @role_required('clinician')

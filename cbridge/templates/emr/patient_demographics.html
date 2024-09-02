@@ -1,0 +1,33 @@
+<div class="tab-pane fade show active" id="demographics" role="tabpanel" aria-labelledby="demographics-tab">
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>Patient Demographics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Basic Information -->
+                <div class="col-md-6">
+                    <h6>Basic Information</h6>
+                    <p><strong>Name:</strong> {{ patient.user.name }}</p>
+                    <p><strong>Age:</strong> {{ patient.age }}</p>
+                    <p><strong>Sex:</strong> {{ patient.user.sex }}</p>
+                </div>
+                <!-- Contact Information -->
+                <div class="col-md-6">
+                    <h6>Contact Information</h6>
+                    <p><strong>Address:</strong> {{ patient.user.address }}</p>
+                    <p><strong>Telephone:</strong> {{ patient.user.telephone }}</p>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <!-- Verification Information -->
+                <div class="col-md-6">
+                    <h6>Verification Information</h6>
+                    <p><strong>Identification:</strong> {{ patient.user.identification }}</p>
+                    <p><strong>Photo:</strong></p>
+                    <img src="{{ url_for('static', filename='images/placeholder-user.jpg') }}" alt="Patient Photo" class="img-thumbnail" width="150">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
