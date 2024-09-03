@@ -24,7 +24,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), nullable=True)
     address = db.Column(db.String(120), nullable=False)
 
-    date_joined = db.Column(db.Date, default=datetime.utcnow)
+    date_joined = db.Column(db.Date, default=datetime.now())
     active = db.Column(db.Boolean, default=True)
 
     @classmethod
@@ -157,6 +157,7 @@ class Patient(db.Model):
     note = db.Column(db.String(50), nullable=True)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'))
 
+
     user: Mapped['User'] = db.relationship(back_populates='patient')
     appointments: Mapped[List['Appointment']] = db.relationship(back_populates='patient')
     allergies: Mapped[List['Allergy']] = db.relationship(back_populates='patient')
@@ -191,6 +192,10 @@ class Clinician(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     note = db.Column(db.String(50), nullable=True)
     uid = db.Column(db.Integer, db.ForeignKey('users.uid'), unique=True, nullable=False)
+    professional_name = db.Column(db.String(50), nullable=True)
+    specialty = db.Column(db.String(50), nullable=True)
+    qualifications = db.Column(db.String(50), nullable=True)
+    registration = db.Column(db.String(50), nullable=True)
 
     user: Mapped['User'] = db.relationship(back_populates='clinician')
     schedules: Mapped[List['Schedule']] = db.relationship(back_populates='clinician')

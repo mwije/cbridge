@@ -7,6 +7,7 @@ from .home import home_bp
 from .book import book_bp
 from .consult import consult_bp
 from .emr import emr_bp
+from .public import public_bp
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)
@@ -21,6 +22,8 @@ def register_blueprints(app):
     logging.info('blueprint consult registered')
     app.register_blueprint(emr_bp)
     logging.info('blueprint emr registered')
+    app.register_blueprint(public_bp)
+    logging.info('blueprint public registered')
     
     @app.errorhandler(404)
     def error404(error):

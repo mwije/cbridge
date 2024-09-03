@@ -87,8 +87,10 @@ document.addEventListener("DOMContentLoaded", function() {
                             drugInput.value = drug.name;
                             drugInput.dataset.drugId = drug.id;
                             drugInput.dataset.drugName = drug.name;
+                            drugInput.focus();
                             fillInstructions(drug.id);
                             autocompleteList.innerHTML = '';
+                            
                         });
                         autocompleteList.appendChild(option);
                     });
@@ -190,6 +192,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             instructionList.appendChild(option);
         });
+        instructionInput.focus();
     }
 
     function createNewDrug(drugName, drugInput) {
@@ -295,6 +298,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const reason = document.getElementById('reason').value;
         const history = document.getElementById('history').value;
         const findings = document.getElementById('findings').value;
+        const plan_note = document.getElementById('management-notes').value;
 
         // Gather prescription data from dynamically generated elements
         const prescriptions = Array.from(document.querySelectorAll('#prescription-list tr.prescription-entry')).map(entry => ({
@@ -310,6 +314,7 @@ document.addEventListener("DOMContentLoaded", function() {
             history: history,
             findings: findings,
             prescriptions: prescriptions,
+            plan_note: plan_note
         };
         
         const url = `/appointment/${appointmentId}/plan`;

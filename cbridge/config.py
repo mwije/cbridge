@@ -9,6 +9,7 @@ class Config:
 
     APP_NAME_SHORT = "cBridge"
     APP_NAME = "clinical Bridge"
+    APP_DOMAIN = os.environ['CBRIDGE_APP_DOMAIN']
     APP_ID = os.environ['CBRIDGE_APP_ID']
     APP_SECRET = os.environ['CBRIDE_APP_SECRET']
     VIDEO_HOST_URL = os.environ['CBRIDGE_VIDEO_URL'].strip('/') + '/'

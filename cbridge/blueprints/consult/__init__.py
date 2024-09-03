@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from cbridge.decorators import role_required, login_required
 from cbridge.models.user import *
+from cbridge.models.encounter import *
 from cbridge.extensions import db, bcrypt
 
 from .forms import *
@@ -31,7 +32,7 @@ def staging(schedule_id=None):
             schedule_id = nearest_schedule.id
         else:
             flash('You have no schedules. Create some')
-            return redirect('home.index')
+            return redirect(url_for('book.clinicianschedule'))
     # All appointments for selected schedule
     appointments = db.session.query(Appointment).filter(
         Appointment.schedule_id==schedule_id
@@ -146,43 +147,73 @@ def generate_plan(appointment_id):
         Appointment.id == appointment_id,
     ).order_by(Appointment.id).first()
 
-    # Retrieve the appointment and create the encounter
-    encounter = Encounter.query.filter_by(appointment_id=appointment_id).first()
-    if encounter is None:
-        # Create a new encounter if none exists
-        encounter = Encounter(appointment_id=appointment_id, datetime_start=datetime.utcnow())
-        db.session.add(encounter)
-    
-    encounter.register(
-        reason=data['reason'],
-        history=data['history'],
-        findings=data['findings'],
-        plan_note=data['plan_note']
-    )
+    if not appointment:
+        return jsonify({'success': False, 'message': 'Appointment not found'}), 404
 
-    # Add prescriptions
-    for pres in data.get('prescriptions', []):
-        encounter.prescription_add(
-            drug_id=pres['drug_id'],
-            instruction=pres['instruction'],
-            duration=pres['duration']
+    # Ensure valid json
+    if request.method == 'POST':
+        data = request.get_json()
+        # Ensure valid JSON and required fields
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        required_fields = ['reason', 'history', 'findings', 'plan_note']
+        missing_fields = [field for field in required_fields if field not in data or not data[field]]
+        
+        if missing_fields:
+            return jsonify({'success': False, 'message': f'Missing fields: {", ".join(missing_fields)}'}), 400
+        
+        #try:
+        # Start a transaction
+        
+        # Clean up existing Encounter and related records for this appointment
+        existing_encounter = Encounter.query.filter_by(appointment_id=appointment_id).first()
+        if existing_encounter:
+            # Delete all prescriptions related to the encounter
+            Prescription.query.filter_by(encounter_id=existing_encounter.id).delete()
+            # Delete the existing encounter
+            db.session.delete(existing_encounter)
+            
+
+        # Create a new encounter
+        encounter = Encounter(
+            appointment_id=appointment_id,
+            datetime_start=datetime.utcnow(),
+            datetime_end=datetime.utcnow(),
+            reason=data['reason'],
+            history=data['history'],
+            findings=data['findings'],
+            plan_note=data['plan_note']
         )
+        
+        db.session.add(encounter)
+        db.session.commit()
 
-    # Generate the plan and create a document TODOS
-    plan_url = encounter.plan_generate_document()
+        # Add new prescriptions
+        prescriptions = data.get('prescriptions', [])
+        for pres in prescriptions:
+            encounter.prescription_add(
+                drug_id=pres['drug_id'],
+                instruction=pres['instruction'],
+                duration=pres['duration'],
+            )
 
-    return jsonify({'success': True, 'document_url': plan_url})
+        db.session.commit()
 
+        # Generate the plan and create a document TODOS
+        existing_encounter = Encounter.query.filter_by(appointment_id=appointment_id).first()
+        plan_url = encounter.plan_generate_document()
 
-def create_plan(reason, history, findings, prescriptions):
-    # Here you should implement the logic to generate your document
-    # For example, you could use a PDF library or another document generator
-    # This function should return the path to the generated document
-    document_path = f"/path/to/generated/documents/plan_{appointment_id}.pdf"
-    
-    # For demonstration, let's assume the document is successfully created
-    return document_path
+        # If all operations succeed, commit the transaction
+        
 
+        return jsonify({'success': True, 'document_url': plan_url})
+        '''
+        except Exception as e:
+            # If there is an error, rollback the transaction
+            db.session.rollback()
+            return jsonify({'success': False, 'message': str(e)}), 500
+'''
 @consult_bp.route('/appointment/<int:appointment_id>/sign', methods=['GET'])
 @role_required('clinician')
 def sign_prescription(appointment_id):

@@ -11,7 +11,7 @@ def role_required(*roles):
             if not current_user.is_authenticated:
                 return redirect(url_for('auth.login'))  # Redirect to login if not authenticated
             user_roles = current_user.get_roles()
-            print(user_roles, roles)
+            #print(user_roles, roles)
             if not any(role in user_roles for role in roles):
                 return redirect(url_for('profile.index'))  # Redirect to unauthorized page
             return f(*args, **kwargs)

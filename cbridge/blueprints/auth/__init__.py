@@ -22,7 +22,7 @@ def login():
                 else:
                     return redirect(url_for('auth.selectrole'))
 
-                return redirect(url_for('profile.index'))
+                return redirect(url_for('home.index'))
         flash('Invalid credentials')
 
     return render_template('login.html', form=form)
@@ -58,14 +58,12 @@ def logout():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
-    print(request.method)
+    #print(request.method)
     
     if form.validate_on_submit():
-        print('yoo')
         def verified_password(): return (form.password.data == form.confirm_password.data)
 
         if verified_password():
-            print('Registering')
             hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
             new_user = User(
                 username = form.username.data,
@@ -88,7 +86,6 @@ def register():
             flash('Account created successfully!')
             return redirect(url_for('auth.login'))
         else:
-            print('Pass')
             flash('Password mismatch')
     else:
         print('Validation failed')

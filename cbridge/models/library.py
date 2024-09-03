@@ -22,7 +22,7 @@ class Drug(db.Model):
         instructions.append({
             'instruction': instruction,
             'clinician_id': clinician_id,
-            'datetime': datetime.utcnow()
+            'datetime': datetime.now()
         })
         self.notes = json.dumps(instructions)
         db.session.commit()

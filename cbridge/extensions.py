@@ -6,6 +6,10 @@ from flask_bcrypt import Bcrypt
 from flask_migrate import Migrate
 import logging
 import os
+import random
+import string
+from datetime import datetime
+import qrcode
 
 from .decorators import init_jinjafilters
 
@@ -65,3 +69,55 @@ def init_logger(app):
     app.logger.addHandler(console_handler)
     app.logger.setLevel(logging.INFO)
 
+def generate_qr_code(data):
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill='black', back_color='white')
+
+    # Save QR code image
+    qr_path = os.path.join('/path/to/save/qr_codes', 'qr_code.png')
+    img.save(qr_path)
+    return qr_path
+
+def random_string(length=8):
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(length))
+
+def get_unique_filename(path, length=8, extension='', datestamp=False):
+    """Generate a unique filename that does not already exist in the given path."""
+    path = '.' + path.rstrip()+ '/'
+    path = rel_to_abs_path(path)
+#    print(path)
+    if not os.path.isdir(path):
+        raise ValueError("The provided path is not a valid directory")
+    while True:
+        filename = random_string(length) + f'_{datetime.now().strftime("%Y%m%d")}' + '.' + extension
+        full_path = os.path.join(path, filename)
+        if not os.path.exists(full_path):
+            return {'filename':filename, 'path':path}
+
+def generate_qr_code(data):
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill='black', back_color='white')
+
+    # Save QR code image
+    name_result = get_unique_filename(path='/static/prescriptions/', extension='jpg', datestamp=True)
+    qr_filename= name_result['filename']
+    qr_path = name_result['path']
+    #print('QR',qr_path,qr_filename)
+    img.save(qr_path+'/'+qr_filename)
+    return 'static/prescriptions/' + qr_filename
+
+def abs_to_rel_path(absolute_path):
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.relpath(absolute_path, start=current_script_dir)
+
+def rel_to_abs_path(relative_path):
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.abspath(os.path.join(current_script_dir, relative_path))
+
+def base_url():
+    return os.path.dirname(os.path.realpath(__file__))

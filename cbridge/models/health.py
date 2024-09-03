@@ -8,7 +8,7 @@ class Allergy(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
     allergen = db.Column(db.String(50), nullable=False)
-    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
     notes = db.Column(db.String(150), nullable=True)
     
     patient: Mapped['Patient'] = db.relationship(back_populates='allergies')
@@ -35,15 +35,15 @@ class Problem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
     problem = db.Column(db.String(50), nullable=False)
-    datetime_set = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    datetime_resolved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    datetime_set = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    datetime_resolved = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
     notes = db.Column(db.String(150), nullable=True)
     
     patient: Mapped['Patient'] = db.relationship(back_populates='problems')
 
     def is_valid(self) -> bool:
-        return self.datetime_removed is None or self.datetime_removed > datetime.utcnow()
+        return self.datetime_removed is None or self.datetime_removed > datetime.now()
 
     def register(self, problem: str, notes: str = None):
         problem = Problem(patient_id=self.patient_id, problem=problem, notes=notes)
@@ -54,7 +54,7 @@ class Problem(db.Model):
         if past_records:
             problems = Problem.query.filter_by(patient_id=self.patient_id).all()
         else:
-            problems = Problem.query.filter_by(patient_id=self.patient_id).filter(Problem.datetime_removed.is_(None) | (Problem.datetime_removed > datetime.utcnow())).all()
+            problems = Problem.query.filter_by(patient_id=self.patient_id).filter(Problem.datetime_removed.is_(None) | (Problem.datetime_removed > datetime.now())).all()
 
         return [{
             'problem_id': problem.id,
@@ -65,7 +65,7 @@ class Problem(db.Model):
         } for problem in problems]
 
     def resolve(self):
-        self.datetime_removed = datetime.utcnow()
+        self.datetime_removed = datetime.now()
         db.session.commit()
 
     def unresolve(self):

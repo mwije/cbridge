@@ -14,7 +14,7 @@ def generate_jwt(user, conference, expiry=datetime.timedelta(hours=1), role=None
            'iss': app_id,
            'sub': domain,
            'room': room_name,
-           'exp': datetime.datetime.utcnow() + expiry,
+           'exp': datetime.datetime.now() + expiry,
            'moderator': role == 'clinician',
            'context': {
                'user': {
@@ -24,6 +24,6 @@ def generate_jwt(user, conference, expiry=datetime.timedelta(hours=1), role=None
                }
            }
        }
-    print(payload)
+    #print(payload)
     token = jwt.encode(payload, secret, algorithm='HS256')
     return token

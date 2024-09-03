@@ -43,7 +43,7 @@ def emr_management(appointment_id):
     appointment = Appointment.query.filter_by(id=appointment_id)
     patient = appointment.patient
     encounter = appointment.encounter
-    today = datetime.utcnow()
+    today = datetime.now()
     ongoing_prescriptions = [
         prescription for encounter in patient.encounter_list()
         for prescription in encounter.prescriptions

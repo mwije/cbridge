@@ -56,7 +56,7 @@ class Schedule(db.Model):
             log_dict = json.loads(self.log)
             
         # Update the dictionary with the new uid and timestamp
-        current_datetime = datetime.now().isoformat()  # Get the current datetime in ISO 8601 format
+        current_datetime = datetime.now() # Get the current datetime in ISO 8601 format
         log_dict[str(uid)] = current_datetime
         
         # Serialize the updated dictionary back into a JSON string
@@ -75,7 +75,7 @@ class Appointment(db.Model):
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedules.id'))
     status = db.Column(db.String(20), nullable=True)
     notes = db.Column(db.String(50), nullable=True)
-    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
     active = db.Column(db.Boolean, default=True)
 
     patient: Mapped['Patient'] = db.relationship(back_populates='appointments')
@@ -91,14 +91,14 @@ class Conference(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
     url = db.Column(db.String(50), nullable=True)
-    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
     active = db.Column(db.Boolean, default=False)
 
     appointment: Mapped['Appointment'] = db.relationship(back_populates='conference')
 
     def mark_open(self):
         self.active = True
-        self.datetime = datetime.utcnow()
+        self.datetime = datetime.now()
         db.session.commit()
     
     def mark_close(self):
