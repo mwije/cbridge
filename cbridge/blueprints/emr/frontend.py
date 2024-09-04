@@ -8,7 +8,7 @@ from ..consult.jwt import generate_jwt
 emr_fe = Blueprint('emr_fe', __name__)
 
 @emr_fe.route('/consultation/emr.js')
-@role_required('clinician')
+@role_required('clinician', 'client')
 def emrjs():
     appointment_id = request.args.get('id')
     appointment = Appointment.query.filter_by(id=appointment_id).first();

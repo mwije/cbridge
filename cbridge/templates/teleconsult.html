@@ -88,7 +88,8 @@
     </div>
 </div>
 
-<script>
-    
-</script>
+{% if session['current_role'] in ['clinician', 'client'] %}
+<script src="{{ url_for('emr_fe.emrjs') }}?id={{ appointment.id }}"></script>
+{% endif %}
+
 {% endblock %}
