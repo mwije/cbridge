@@ -1,9 +1,49 @@
-{% if session['current_role'] == 'client' %}
-    <a href="{{ url_for('book.booking')}}" class="btn btn-secondary">Bookings</a>
-    <a href="{{ url_for('profile.index')}}" class="btn btn-secondary">My Records</a>
-{% endif %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        {% if session['current_role'] == 'client' %}
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <i class="fa fa-calendar-alt fa-3x mb-3 text-primary"></i>
+                        <h5 class="card-title">Bookings</h5>
+                        <p class="card-text">Manage your appointments here.</p>
+                        <a href="{{ url_for('book.booking')}}" class="btn btn-primary btn-block">Go to Bookings</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <i class="fa fa-file-alt fa-3x mb-3 text-success"></i>
+                        <h5 class="card-title">My Records</h5>
+                        <p class="card-text">View and update your personal records.</p>
+                        <a href="{{ url_for('profile.index')}}" class="btn btn-success btn-block">View Records</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
 
-{% if session['current_role'] == 'clinician' %}
-    <a href="{{ url_for('book.clinicianschedule')}}" class="btn btn-secondary">Schedule</a>
-    <a href="{{ url_for('consult.staging')}}" class="btn btn-secondary">Consultation</a>
-{% endif %}
+        {% if session['current_role'] == 'clinician' %}
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <i class="fa fa-calendar-check fa-3x mb-3 text-info"></i>
+                        <h5 class="card-title">Schedule</h5>
+                        <p class="card-text">View and manage your schedule.</p>
+                        <a href="{{ url_for('book.clinicianschedule')}}" class="btn btn-info btn-block">Go to Schedule</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <i class="fa fa-stethoscope fa-3x mb-3 text-warning"></i>
+                        <h5 class="card-title">Consultation</h5>
+                        <p class="card-text">Access your consultation dashboard.</p>
+                        <a href="{{ url_for('consult.staging')}}" class="btn btn-warning btn-block">Start Consultation</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>

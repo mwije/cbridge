@@ -32,4 +32,4 @@ class RegisterForm(FlaskForm):
 
 class RoleSwitchForm(FlaskForm):
     role = SelectField(choices = [], validators = [DataRequired()])
-    submit = SubmitField('Apply Role')
+    #submit = SubmitField('Apply Role')

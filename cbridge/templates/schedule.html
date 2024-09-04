@@ -1,39 +1,86 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ title }}{% endblock %}
+
 {% block content %}
-    <h1>{{ title }}</h1>
-    
-    <!-- Form for adding a new schedule -->
-    <form method='POST' action="{{ url_for('book.clinicianschedule') }}">
-        {% for field in new_schedule_form %}
-            {% if field.type not in ['UnboundField'] %}
-                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
-                    {{ field.label }}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">{{ title }}</h1>
+
+    <div class="row">
+        <!-- Form for adding a new schedule -->
+        {% if session['current_role'] == 'clinician' %}
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Add New Schedule</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('book.clinicianschedule') }}">
+                        {{ new_schedule_form.hidden_tag() }}
+                        {% for field in new_schedule_form %}
+                            {% if field.type not in ['CSRFTokenField', 'HiddenField', 'SubmitField'] %}
+                                <div class="form-group">
+                                    {{ field.label(class="form-label") }}
+                                    {{ field(class="form-control", placeholder=field.label.text) }}
+                                    {% if field.errors %}
+                                        <div class="text-danger">
+                                            {% for error in field.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <div class="d-flex justify-content-end">
+                            {{ new_schedule_form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Upcoming and Active Bookings -->
+        <div class="col-lg-8">
+            <div id="upcoming-bookings" class="mb-4">
+                <h4 class="text-center">Upcoming and Active Bookings</h4>
+                {% if bookings %}
+                    <div class="list-group">
+                        {% for booking in bookings if not booking.date | is_past(booking.time_start) %}
+                            <div class="list-group-item list-group-item-action">
+                                {% include 'schedule_snippet.html' %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-center text-muted">No upcoming bookings.</p>
                 {% endif %}
-                {{ field }} <br>
-            {% endif %}
-        {% endfor %}
-    </form>
-    
-    <br>
-    
-    <!-- Upcoming and Active Bookings -->
-    <div id="upcoming-bookings">
-        {% for booking in bookings if not booking.date | is_past(booking.time_start) %}
-            {% include 'schedule_snippet.html' %}
-        {% endfor %}
-    </div>
+            </div>
 
-    <!-- Button to Show/Hide Past Records -->
-    <button class="btn btn-primary mt-4" type="button" data-toggle="collapse" data-target="#past-bookings" aria-expanded="false" aria-controls="past-bookings">
-        Show/Hide Past Records
-    </button>
+            <!-- Button to Show/Hide Past Records -->
+            <div class="text-center">
+                <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#past-bookings" aria-expanded="false" aria-controls="past-bookings">
+                    Show/Hide Past Records
+                </button>
+            </div>
 
-    <!-- Collapsible Past Records -->
-    <div class="collapse mt-3" id="past-bookings">
-        {% for booking in bookings if booking.date | is_past %}
-            {% include 'schedule_snippet.html' %}
-        {% endfor %}
+            <!-- Collapsible Past Records -->
+            <div class="collapse mt-3" id="past-bookings">
+                <h4 class="text-center">Past Bookings</h4>
+                {% if bookings %}
+                    <div class="list-group">
+                        {% for booking in bookings if booking.date | is_past %}
+                            <div class="list-group-item list-group-item-action">
+                                {% include 'schedule_snippet.html' %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-center text-muted">No past bookings.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
+</div>
 {% endblock %}

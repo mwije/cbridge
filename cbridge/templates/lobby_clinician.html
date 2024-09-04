@@ -1,83 +1,71 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ title }}{% endblock %}
+
 {% block head %}
 <style>
-    .status-ongoing {
-        background-color: #f7b314;
-        color: black;
-    }
-    .status-completed {
-        background-color: #ccceca;
-        color: black;
-    }
-    .status-cancelled {
-        background-color: #847a73;
-        color: #bdbdbd;
-    }
-    .status-queued {
-        background-color: #e1fff9;
-        color: black;
-    }
-    .status-scheduled, .status-default {
-        background-color: white;
-        color: black;
-    }
-    .status-text {
-        font-size: .8em;
-        border-radius: .5em;
-        background: #666666a3;
+    .status-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.25em 0.5em;
+        border-radius: 0.25em;
+        color: #fff;
         text-align: center;
-        color: #eee;
-        font-variant-caps: petite-caps;
-        border: #7773734f solid 1px;
-        margin: 0;
     }
+    .status-ongoing { background-color: #f7b314; }
+    .status-completed { background-color: #ccceca; color: black; }
+    .status-cancelled { background-color: #847a73; color: #bdbdbd; }
+    .status-queued { background-color: #e1fff9; color: black; }
+    .status-scheduled, .status-default { background-color: white; color: black; }
+    .status-text { font-size: 0.75rem; border-radius: 0.25em; background: #666666a3; text-align: center; color: #eee; border: #7773734f solid 1px; }
 </style>
 {% endblock %}
+
 {% block content %}
-<h1>{{ title }}</h1>
 <div class="container-fluid">
+    <h1 class="my-4">{{ title }}</h1>
     <div class="row">
         <!-- Left Sidebar: Schedules List -->
-        <div class="col-md-3">
-            <ul class="list-group">
-                {% for schedule in schedules %}
-                <li class="list-group-item {% if schedule.id == selected_schedule_id %}active{% endif %}">
-                    <a href="{{ url_for('consult.staging', schedule_id=schedule.id) }}"
-                        class="{% if schedule.id == selected_schedule_id %}text-white{% endif %}">
-                        {{ schedule.date }} ({{ schedule.time_start }} - {{ schedule.time_end }})
-                        {% if schedule.clinic and schedule.clinic.address %}
-                        @ {{ schedule.clinic.address }}
-                        {% endif %}
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Schedules</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for schedule in schedules %}
+                    <li class="list-group-item {% if schedule.id == selected_schedule_id %}active{% endif %}">
+                        <a href="{{ url_for('consult.staging', schedule_id=schedule.id) }}"
+                            class="{% if schedule.id == selected_schedule_id %}text-white{% endif %}">
+                            {{ schedule.date }} ({{ schedule.time_start }} - {{ schedule.time_end }})
+                            {% if schedule.clinic and schedule.clinic.address %}
+                            <br>@ {{ schedule.clinic.address }}
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
 
         <!-- Middle Section: Appointments List -->
-        <div class="col-md-6">
+        <div class="col-md-6 mb-4">
             {% if appointments %}
-            <!-- Toggle button to mark active schedule -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4>Appointments</h4>
                 <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="toggle-schedule" {% if
-                        session['current_schedule'] !=schedule_id %}unchecked{% else %}checked{% endif %}>
+                    <input type="checkbox" class="custom-control-input" id="toggle-schedule" {% if session['current_schedule'] != schedule_id %}unchecked{% else %}checked{% endif %}>
                     <label class="custom-control-label" for="toggle-schedule">Active</label>
                 </div>
             </div>
             {% else %}
-            <span>No appointments have been made for this slot.</span>
+            <div class="alert alert-info">No appointments have been made for this slot.</div>
             {% endif %}
 
             {% if session.current_schedule and session.current_schedule.id != selected_schedule_id %}
             <div class="alert alert-warning">
                 You are currently working on another schedule:
                 <a href="{{ url_for('consult.staging', schedule_id=session.current_schedule.id) }}" class="alert-link">
-                    {{ session.current_schedule.date }} ({{ session.current_schedule.time_start }} - {{
-                    session.current_schedule.time_end }})
+                    {{ session.current_schedule.date }} ({{ session.current_schedule.time_start }} - {{ session.current_schedule.time_end }})
                 </a>
             </div>
             {% endif %}
@@ -91,16 +79,14 @@
                                 class="custom-control-input" value="{{ appointment.id }}"
                                 data-patient-id="{{ appointment.patient_id }}" data-status="{{ appointment.status }}">
                             <label class="custom-control-label" for="appointment{{ appointment.id }}">
-                                {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{
-                                appointment.patient.sex }}
-                            <p class="status-text"></p>
+                                {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{ appointment.patient.sex }}
+                                <p class="status-text">{{ appointment.status | title }}</p>
                             </label>
                         </div>
-                        <label class="last-seen"></label>
+                        <span class="last-seen"></span>
                     </li>
                     {% endfor %}
                 </ul>
-                <!-- Submit button is placed dynamically using JavaScript -->
                 {% if appointments %}
                 <button type="submit" id="submit-button" class="btn btn-primary mt-3">Start Appointment</button>
                 {% endif %}
@@ -109,37 +95,43 @@
 
         <!-- Right Sidebar: Appointment Statistics and Patient Details -->
         <div class="col-md-3">
-            <!-- Appointment Statistics Section -->
-            <div id="appointment-stats" class="border p-3 mb-3">
-                <h4>Appointment Statistics</h4>
-                <div class="d-flex flex-column">
-                    <div class="d-flex justify-content-between mb-2">
-                        <p><strong>Completed:</strong> <span id="completed-appointments">0</span></p>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <p><strong>Queued:</strong> <span id="queued-appointments">0</span></p>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <p><strong>Scheduled:</strong> <span id="scheduled-appointments">0</span></p>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <p><strong>Total:</strong> <span id="total-appointments">0</span></p>
+            <div id="appointment-stats" class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Appointment Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-column">
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Completed:</strong> <span id="completed-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Queued:</strong> <span id="queued-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <p><strong>Scheduled:</strong> <span id="scheduled-appointments">0</span></p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <p><strong>Total:</strong> <span id="total-appointments">0</span></p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Sidebar: Patient Details -->
-            <div id="patient-details" class="border p-3">
-                {% if appointments %}
-                <h4>Patient Details</h4>
-                <p><strong>Name:</strong> <span id="patient-name">Select an appointment</span></p>
-                <p><strong>Age:</strong> <span id="patient-age">-</span> years</p>
-                <p><strong>Sex:</strong> <span id="patient-sex">-</span></p>
-                <p><strong>Medical History:</strong> <span id="patient-medical-history">-</span></p>
-                <p><strong>Allergies:</strong> <span id="patient-allergies">-</span></p>
-                <p><strong>Current Medications:</strong> <span id="patient-current-medications">-</span></p>
-                <p><strong>Last Visit:</strong> <span id="patient-last-visit">-</span></p>
-                {% endif %}
+            <div id="patient-details" class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Patient Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if appointments %}
+                    <p><strong>Name:</strong> <span id="patient-name">Select an appointment</span></p>
+                    <p><strong>Age:</strong> <span id="patient-age">-</span> years</p>
+                    <p><strong>Sex:</strong> <span id="patient-sex">-</span></p>
+                    <p><strong>Medical History:</strong> <span id="patient-medical-history">-</span></p>
+                    <p><strong>Allergies:</strong> <span id="patient-allergies">-</span></p>
+                    <p><strong>Current Medications:</strong> <span id="patient-current-medications">-</span></p>
+                    <p><strong>Last Visit:</strong> <span id="patient-last-visit">-</span></p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -149,6 +141,9 @@
 <div id="notification-banner" class="alert alert-info alert-dismissible fade show" role="alert"
     style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1050;">
     <span id="notification-message"></span>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
 </div>
 
 <script>

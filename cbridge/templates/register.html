@@ -1,25 +1,64 @@
 {% extends 'base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block head %}
     <script type="text/javascript" src="/static/form.js"></script>
 {% endblock %}
 
 {% block content %}
-    <form method='POST' action="{{ url_for('auth.register')}}">
-        {% for field in form %}
-            {% if field.type not in ['UnboundField'] %}
-                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
-                {{ field.label }}
-                {% endif %}
-            {{ field }} <br>
-            {% endif %}
-        {% endfor %}
-    </form>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Create an Account</h3>
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        {{ form.csrf_token }}
 
-    
-        
-        
-        
+                        {% for field in form %}
+                            {% if field.type not in ['UnboundField'] %}
+                                {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
+                                <div class="form-group mb-3">
+                                    {{ field.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {% if field.name == 'username' %}
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fa fa-user"></i></span>
+                                            </div>
+                                        {% elif field.name == 'email' %}
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                                            </div>
+                                        {% elif field.name == 'password' %}
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                            </div>
+                                        {% elif field.name == 'confirm_password' %}
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                            </div>
+                                        {% endif %}
+                                        {{ field(class="form-control", placeholder="Enter your " + field.label.text.lower()) }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-center">
+                            {{ form.submit(class="btn btn-primary btn-block") }}
+                        </div>
+                    </form>
+
+                    <hr>
+
+                    <div class="text-center">
+                        Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, session
 from flask_login import login_required, current_user
-
-from cbridge.models import *
+from cbridge.models import User, Patient, Clinician
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -9,50 +8,54 @@ profile_bp = Blueprint('profile', __name__)
 @profile_bp.route('/<selected_uid>')
 @login_required
 def index(selected_uid):
-    if not selected_uid: current_user.uid
-    userinfo = render_userview(selected_uid)
-    roleinfo = render_roleview(selected_uid)
+    if not selected_uid:
+        selected_uid = current_user.uid
+
+    userinfo = get_user_info(selected_uid)
+    roleinfo = get_role_info(selected_uid)
 
     return render_template('profile.html', userinfo=userinfo, roleinfo=roleinfo)
-    
 
 
-def render_userview(uid):
-    fields = get_fieldvalues(User, current_user)
-    return render_template('userinfo.html', fields=fields, title='')
+def get_user_info(uid):
+    user = User.query.get(uid)
+    if user:
+        return {
+            'username': user.username,
+            'name': user.name,
+            'date_birth': user.date_birth.strftime('%Y-%m-%d'),
+            'email': user.email,
+            'telephone': user.telephone,
+            'address': user.address,
+            'role': ', '.join(user.get_roles())
+            # Add more fields as needed
+        }
+    return {}
 
+def get_role_info(uid):
+    roleinfo = {}
+    current_role = session.get('current_role', '')
 
-def render_roleview(uid):
-    roledata= {}
-    if session.get('current_role'):
-        current_role=session.get('current_role')
-    else:
-        current_role=''
+    if current_role == 'client':
+        patient = Patient.query.filter_by(uid=uid).first()
+        if patient:
+            roleinfo = {
+                'Note': patient.note,
+                'Appointments': len(patient.appointment_list()),  # Example
+                # Add more patient-specific fields as needed
+            }
+    elif current_role == 'clinician':
+        clinician = Clinician.query.filter_by(uid=uid).first()
+        if clinician:
+            roleinfo = {
+                'Professional Name': clinician.professional_name,
+                'Specialty': clinician.specialty,
+                'Qualifications': clinician.qualifications,
+                'Registration': clinician.registration,
+                'Contact': clinician.contact,
+                'Schedules': len(clinician.schedules),  # Example
+                # Add more clinician-specific fields as needed
+            }
+    # Add other roles as needed
 
-    match current_role:
-        case 'client':
-            print('USER ROLE:', current_user.patient)
-            if current_user.patient:
-                  roledata = get_fieldvalues(Patient, current_user.patient)
-        case 'clinician':
-            print('USER ROLE:', current_user.clinician)
-            if current_user.clinician:
-                roledata = get_fieldvalues(Clinician, current_user.clinician)
-        case default:
-            
-            return error
-
-    if roledata:
-        
-        return render_template('userinfo.html', fields=roledata, title=current_role )
-    else:
-        return f'{ current_role } role is not authorized for user: {current_user.username}'
-
-def get_fieldvalues(table, instance):
-    fielddata = {}
-    print('x')
-    for column in table.__table__.columns:
-        print(column)
-        fielddata[column.name] = getattr(instance, column.name)
-        
-    return fielddata
+    return roleinfo

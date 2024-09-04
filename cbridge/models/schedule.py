@@ -57,9 +57,10 @@ class Schedule(db.Model):
             
         # Update the dictionary with the new uid and timestamp
         current_datetime = datetime.now() # Get the current datetime in ISO 8601 format
-        log_dict[str(uid)] = current_datetime
+        log_dict[str(uid)] = current_datetime.isoformat()
         
         # Serialize the updated dictionary back into a JSON string
+        #print(log_dict)
         self.log = json.dumps(log_dict)
         db.session.commit()
         

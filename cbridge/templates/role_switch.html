@@ -1,16 +1,34 @@
 {% extends 'base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Select Role{% endblock %}
 
 {% block content %}
-<form method='POST' action="{{ url_for('auth.selectrole')}}">
-    {% for field in form %}
-        {% if field.type not in ['UnboundField'] %}
-            {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
-            {{ field.label }}
-            {% endif %}
-        {{ field }} <br>
-        {% endif %}
-    {% endfor %}
-</form>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Select Your Role</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('auth.selectrole') }}">
+                        {% for field in form %}
+                            {% if field.type not in ['UnboundField'] %}
+                                <div class="form-group">
+                                    {% if field.widget.input_type != 'hidden' and field.type not in ['SubmitField'] %}
+                                        <label for="{{ field.id }}">{{ field.label }}</label>
+                                    {% endif %}
+                                    {{ field(class="form-control") }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <div class="form-group text-center mt-4">
+                            <button type="submit" class="btn btn-primary">Switch Role</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

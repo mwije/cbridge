@@ -1,62 +1,72 @@
-<div class="list-group-item border 
-    {% if booking.date | is_past %}
-        bg-secondary text-light
-    {% elif not booking.active %}
-        bg-warning text-dark
-    {% else %}
-        bg-success text-light
-    {% endif %}
-    mb-3 rounded">
-    
-    <div class="d-flex justify-content-between align-items-center">
-        <!-- Heading and Date Information -->
-        <div>
-            <h5 class="mb-1">{{ booking['date'] | day_of_week }}, {{ booking['date'].strftime('%B %d, %Y') }}
-                <small class="font-weight-bold font-italic">with Dr. {{ booking.clinician.user.name }}</small>
-            </h5>
-            <small class="d-block">{{ booking['date'] | remaining_time(time=booking['time_start']) }}</small>
-            
-        </div>
+<div class="list-group-item border mb-3 rounded shadow-sm d-flex justify-content-between align-items-start">
 
-        <!-- Icons and Actions -->
-        <div class="text-end">
-            {% if session.get('current_role') == 'clinician' %}
-                <form action="{{ url_for('book.remove_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-danger btn-sm" title="Remove Schedule">
-                        <i class="bi bi-trash"></i> Remove
-                    </button>
-                </form>
-                <form action="{{ url_for('book.toggle_schedule', schedule_id=booking.id) }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-info btn-sm" title="Toggle Active/Inactive">
-                        {% if booking.active %}
-                            <i class="bi bi-toggle-on"></i> Mark as Inactive
-                        {% else %}
-                            <i class="bi bi-toggle-off"></i> Mark as Active
-                        {% endif %}
-                    </button>
-                </form>
-            {% elif session.get('current_role') == 'client' %}
-                {% if booking.appointments | length < booking.max_bookings %}
-                    <form method="POST" action="{{ url_for('book.make_booking', schedule_id=booking.id) }}">
-                        <button type="submit" class="btn btn-primary">Book This Slot</button>
-                    </form>
-                {% else %}
-                    <span class="text-danger">Fully Booked</span>
-                {% endif %}
+    <!-- Booking Information -->
+    <div class="d-flex flex-column">
+        <h5 class="mb-1">
+            {{ booking['date'] | day_of_week }}, {{ booking['date'].strftime('%B %d, %Y') }}
+        </h5>
+        <small class="font-weight-bold text-muted">
+            with Dr. {{ booking.clinician.user.name }}
+        </small>
+        <small class="d-block mt-1 text-muted">
+            {{ booking['date'] | remaining_time(time=booking['time_start']) }}
+        </small>
+
+        <!-- Booking Time and Details -->
+        <div class="mt-2">
+            <p class="mb-1">
+                <strong>Time:</strong> {{ booking['time_start'] }} to {{ booking['time_end'] }}
+            </p>
+            
+            {% if booking['clinic'] %}
+            <p class="mb-1">
+                <strong>Location:</strong> {{ booking['clinic'] }}
+            </p>
             {% endif %}
+            
+            <p class="mb-0">
+                <strong>Slots:</strong> {{ booking.max_bookings }} available
+            </p>
         </div>
     </div>
 
-    <!-- Booking Time and Details -->
-    <p class="mb-1 mt-2">
-        <strong>Time:</strong> {{ booking['time_start'] }} to {{ booking['time_end'] }}
-    </p>
-    
-    {% if booking['clinic'] %}
-    <p class="mb-1">
-        <strong>Location:</strong> @ {{ booking['clinic'] }}
-    </p>
-    {% endif %}
-    
-    <p class="mb-1"><strong>Slots:</strong> {{ booking.max_bookings }} available</p>
+    <!-- Status Indicator and Actions -->
+    <div class="text-right d-flex flex-column justify-content-between">
+        <!-- Status Indicator -->
+        <div class="mb-2">
+            {% if booking.date | is_past %}
+                <span class="badge badge-secondary">Past Booking</span>
+            {% elif not booking.active %}
+                <span class="badge badge-warning">Inactive</span>
+            {% else %}
+                <span class="badge badge-success">Active</span>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        {% if session.get('current_role') == 'clinician' %}
+            <form action="{{ url_for('book.remove_schedule', schedule_id=booking.id) }}" method="POST" class="mb-2">
+                <button type="submit" class="btn btn-danger btn-sm" title="Remove Schedule">
+                    <i class="fas fa-trash-alt"></i> Remove
+                </button>
+            </form>
+            <form action="{{ url_for('book.toggle_schedule', schedule_id=booking.id) }}" method="POST">
+                <button type="submit" class="btn btn-info btn-sm" title="Toggle Active/Inactive">
+                    {% if booking.active %}
+                        <i class="fas fa-toggle-on"></i> Mark as Inactive
+                    {% else %}
+                        <i class="fas fa-toggle-off"></i> Mark as Active
+                    {% endif %}
+                </button>
+            </form>
+        {% elif session.get('current_role') == 'client' %}
+            {% if booking.appointments | length < booking.max_bookings %}
+                <form method="POST" action="{{ url_for('book.make_booking', schedule_id=booking.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Book This Slot</button>
+                </form>
+            {% else %}
+                <span class="badge badge-danger">Fully Booked</span>
+            {% endif %}
+        {% endif %}
+    </div>
 </div>
