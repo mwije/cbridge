@@ -29,8 +29,10 @@ def clinicianschedule():
 
 
     title = "Clinician's Schedule"
-
-    bookings = Schedule.query.filter_by(clinician_id=current_user.clinician.id).order_by(Schedule.date).all()
+    if current_user.clinician.schedules :
+        bookings = Schedule.query.filter_by(clinician_id=current_user.clinician.id).order_by(Schedule.date).all()
+    else:
+        bookings=''
     return render_template('schedule.html', title = title, bookings=bookings, new_schedule_form=form)
 
 @book_bp.route('/schedule/remove/<int:schedule_id>', methods=['POST'])

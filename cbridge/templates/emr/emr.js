@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Handle Consultation Cancellation
     // Show the new confirmation modal when 'pause-consult' is clicked
     document.getElementById('pause-consult').addEventListener('click', function() {
-        startCooldown('Consultation completed', false);
+        startCooldown('Consultation completed', false, 0);
     });
 
     // Handle the confirmation button click in the new modal
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
         confirmationModal.hide();
     }
     
-    function startCooldown(reason, initiatedByJitsi = false) {
+    function startCooldown(reason, initiatedByJitsi = false, conclusion = 1) {
         exit_initiatedByJitsi = initiatedByJitsi;
         countdown = true;
         let timeLeft = 3;
@@ -119,16 +119,16 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('cooldown-timer').textContent = `Redirecting in ${timeLeft} seconds...`;
             if (timeLeft <= 0) {
                 clearInterval(countdownProcess);
-                handleCooldownCompletion();
+                handleCooldownCompletion(conclusion);
             }
         }, 1000);
     }
     
-    function handleCooldownCompletion() {
+    function handleCooldownCompletion(conclusion) {
         if (countdown && exit_initiatedByJitsi) {
             window.location.href = '{{ lobby_url }}';
         } else if (countdown) {
-            exitFunction(1);
+            exitFunction(conclusion);
         } else {
             resetCooldown();
         }
@@ -139,6 +139,11 @@ document.addEventListener("DOMContentLoaded", function() {
     let autocompleteDrugs = [];
     let fetchedInstructions = [];
     const appointmentId = document.getElementById('appointment-id').value;
+    const drugInput = document.getElementById('new-prescription-drug');
+    const instructionInput = document.getElementById('new-prescription-instruction');
+    const instructionSuggestions = document.getElementById('instruction-suggestions');
+    const durationInput = document.getElementById('new-prescription-duration');
+    const prescriptionList = document.getElementById('prescription-list');
 
     // Function to initialize autocompletion for drugs
     function initAutocomplete() {
@@ -247,9 +252,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Function to initialize instruction autocomplete
     function initInstructionAutocomplete() {
-        const instructionInput = document.getElementById('new-prescription-instruction');
-        const instructionSuggestions = document.getElementById('instruction-suggestions');
-
         // Show suggestions when input is focused
         instructionInput.addEventListener('focus', function() {
             instructionSuggestions.style.display = 'block';
@@ -296,7 +298,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         currentDrugId = drugId;
         
-        const instructionInput = document.getElementById('new-prescription-instruction');
         fetch(`/emr/drugs/${encodeURIComponent(drugId)}/instructions`)
             .then(response => response.json())
             .then(data => {
@@ -372,11 +373,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Function to add new prescription to the list
     function addNewPrescription() {
-        const drugInput = document.getElementById('new-prescription-drug');
-        const instructionInput = document.getElementById('new-prescription-instruction');
-        const durationInput = document.getElementById('new-prescription-duration');
-        const prescriptionList = document.getElementById('prescription-list');
-
         if (!drugInput.value || !instructionInput.value || !durationInput.value) {
             alert('Please fill in all fields');
             return;
@@ -414,9 +410,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Function to enable add button when all fields are filled
     function enableAddButton() {
-        const drugInput = document.getElementById('new-prescription-drug');
-        const instructionInput = document.getElementById('new-prescription-instruction');
-        const durationInput = document.getElementById('new-prescription-duration');
         const addButton = document.getElementById('add-prescription-btn');
         console.log(drugInput.value, instructionInput.value, durationInput.value)
         if (drugInput.value && instructionInput.value && durationInput.value) {

@@ -279,13 +279,13 @@ def conclude_appointment(appointment_id):
     
     match conclusion:
         case 0: # acknowledge
-            appointment.encounter.queue()
+            appointment.queue()
             response = {'success': True, 'message': 'No action taken'}
         case 1: # mark as completed
-            appointment.encounter.complete()
+            appointment.complete()
             response = {'success': True, 'message': 'Appointment marked as completed'}
         case 2: # mark as canceled
-            appointment.encounter.cancel()
+            appointment.cancel()
             response = {'success': True, 'message': 'Appointment marked as cancelled'}
         case default:
             response = {'success': False, 'message': 'Invalid conclusion value'}

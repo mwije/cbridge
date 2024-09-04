@@ -11,26 +11,12 @@ def index(selected_uid):
     if not selected_uid:
         selected_uid = current_user.uid
 
-    userinfo = get_user_info(selected_uid)
+    user = User.query.get(selected_uid)
     roleinfo = get_role_info(selected_uid)
 
-    return render_template('profile.html', userinfo=userinfo, roleinfo=roleinfo)
+    return render_template('profile.html', userinfo=user, roleinfo=roleinfo)
 
 
-def get_user_info(uid):
-    user = User.query.get(uid)
-    if user:
-        return {
-            'username': user.username,
-            'name': user.name,
-            'date_birth': user.date_birth.strftime('%Y-%m-%d'),
-            'email': user.email,
-            'telephone': user.telephone,
-            'address': user.address,
-            'role': ', '.join(user.get_roles())
-            # Add more fields as needed
-        }
-    return {}
 
 def get_role_info(uid):
     roleinfo = {}
