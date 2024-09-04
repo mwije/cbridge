@@ -74,11 +74,11 @@ def staging(schedule_id=None):
 @role_required('client')
 def lobby():
     thedate = datetime.today().date()
-    appointments = db.session.query(Appointment).join(Schedule).filter(
+    appointments = db.session.query(Appointment).filter(
         Appointment.patient_id == current_user.patient.id,
         Appointment.active == True
     ).order_by(Appointment.id.desc()).all()
-
+    
     if not appointments:
         flash("No appointments for user. Make a booking")
         return redirect(url_for('book.booking'))
@@ -128,6 +128,10 @@ def get_appointment_status(appointment_id):
     queued_appointments = [a for a in appointments if a.status in ['queued']]
     completed_appointments = [a for a in appointments if a.status in ['completed']]
     queue_position = next((index + 1 for index, a in enumerate(queued_appointments) if a.id == appointment.id), None)
+    try:
+        plan = appointment.encounter.plan.url
+    except Exception as e:
+        plan = None
 
     # Return status as JSON, including the dynamic queue position
     return jsonify({
@@ -139,7 +143,8 @@ def get_appointment_status(appointment_id):
         'appointment_number': appointment_number,
         'queue_position': queue_position,
         'conference': conference,
-        'live': live
+        'live': live,
+        'plan': plan
     })
 
 @consult_bp.route('/appointment/<int:appointment_id>/plan', methods=['GET', 'POST'])

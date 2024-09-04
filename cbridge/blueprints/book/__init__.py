@@ -61,7 +61,6 @@ def booking():
     active_appointment = Appointment.query.filter_by(patient_id=patient.id, active=True).first()
     
     if active_appointment:
-        
         return redirect(url_for('consult.lobby'))
     
     # If no active appointment, show available schedules

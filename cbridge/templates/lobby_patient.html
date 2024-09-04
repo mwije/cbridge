@@ -83,6 +83,7 @@
                     const conferenceUrl = data.conference;
                     const live = data.live;
                     const status = data.appointment_status;
+                    const planUrl = data.plan;
                     const timeStart = new Date(data.time_start);
                     const timeEnd = new Date(data.time_end);
                     const now = new Date();
@@ -130,11 +131,15 @@
                     }
 
                     // Redirect when the conference is ready
-                    if (conferenceUrl && live) {
+                    if (conferenceUrl && live && status == 'ongoing') {
                         document.getElementById('queue-position').textContent = 'Entering...';
                         setTimeout(() => {
                             window.location.href = conferenceUrl;
                         }, 5000);
+                    } else if (planUrl && status == 'completed') {
+                        window.location.href = 'prescription/verify/' + planUrl;
+                    } else {
+                        console.log(planUrl, status);
                     }
                 })
                 .catch(error => console.error('Error fetching status:', error));

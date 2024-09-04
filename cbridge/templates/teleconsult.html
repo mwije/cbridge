@@ -92,4 +92,32 @@
 <script src="{{ url_for('emr_fe.emrjs') }}?id={{ appointment.id }}"></script>
 {% endif %}
 
+{% if session['current_role'] in ['client'] %}
+<script>
+    // Function to check appointment status
+    function checkAppointmentStatus() {
+        // Replace 'id' with the actual appointment ID
+        const appointmentId = 'id';  // You need to replace 'id' with the actual appointment ID
+
+        // Make the request to the endpoint
+        fetch(`/appointment/{{appointment.id}}/status`)
+            .then(response => response.json())
+            .then(data => {
+                // Check if status is not 'ongoing'
+                if (data.appointment_status != 'ongoing') {
+                    // Redirect to /lobby
+                    window.location.href = '/lobby';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching appointment status:', error);
+            });
+    }
+
+    // Set the interval for checking status (e.g., every 5 seconds)
+    const checkInterval = 5000; // 5000 milliseconds = 5 seconds
+    setInterval(checkAppointmentStatus, checkInterval);
+</script>
+{% endif %}
+
 {% endblock %}

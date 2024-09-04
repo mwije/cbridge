@@ -148,21 +148,6 @@ def drugs(patient_id):
     return render_template('drugs.html', drugs=drugs)
 
 
-@emr_bp.route('/patient/<int:patient_id>/management-plan', methods=['GET', 'POST'])
-def management_plan(patient_id):
-    if request.method == 'POST':
-        plan = ManagementPlan.query.filter_by(patient_id=patient_id).first()
-        plan.description = request.form['description']
-        db.session.commit()
-        # Handle the authorization checkbox
-        if 'authorize' in request.form:
-            plan.authorized = True
-            db.session.commit()
-            # Generate prescription logic here
-        return redirect(url_for('emr.management_plan', patient_id=patient_id))
-    plan = ManagementPlan.query.filter_by(patient_id=patient_id).first()
-    return render_template('management_plan.html', plan=plan)
-
 @emr_bp.route('/patient/<int:patient_id>/summary/json')
 @role_required('clinician')
 def patient_summary_json(patient_id):
