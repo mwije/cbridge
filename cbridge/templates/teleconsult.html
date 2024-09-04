@@ -5,6 +5,49 @@
 <style>
     body { margin: 0; }
     #jitsi-container { height: 20em; }
+
+    /* Preview Modal Styles */
+    .preview-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .preview-modal-content {
+        background-color: #fefefe;
+        margin: 1em auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        height: 100%;
+    }
+
+    .preview-close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .preview-close:hover,
+    .preview-close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .button-over-modal {
+        position: fixed;
+        top: 90%; /* Adjust the distance from the top as needed */
+        right: 20px; /* Adjust the distance from the right as needed */
+        z-index: 1100; /* Ensure it's above the modal (which has a z-index of 1000) */
+    }
 </style>
 {% endblock %}
 
@@ -37,143 +80,15 @@
 <!-- Confirmation Modal -->
 {% include 'consultation_confirmation_modal.html' %}
 
+<!-- The Plan Preview Modal -->
+<div id="previewModal" class="modal preview-modal">
+    <div class="modal-content preview-modal-content">
+        <span id="previewClose" class="preview-close">&times;</span>
+        <iframe id="previewIframe" class="preview-iframe" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
+</div>
 
 <script>
-    let countdown = false;
-    let countdownInterval;
-    let exit_initiatedByJitsi = false;
-    let lastJitsiEventTime = 0; // Timestamp of the last Jitsi event
-    const DEBOUNCE_DELAY = 10000;
-
-    function resetCooldown() {
-        if (exit_initiatedByJitsi && countdown) {
-                location.reload();
-        }
-        countdown = false;
-        countdownInterval = 3;
-        exit_initiatedByJitsi = false;
-    }
-
-    function startCooldown(reason, initiatedByJitsi = false) {
-        exit_initiatedByJitsi = initiatedByJitsi;
-        countdown = true;
-        let timeLeft = 3;
-        $('#cooldown-timer').text(`Redirecting in ${timeLeft} seconds...`);
-        $('#confirmationModal').modal('show');
-
-        let countdownProcess = setInterval(function() {
-            timeLeft--;
-            $('#cooldown-timer').text(`Redirecting in ${timeLeft} seconds...`);
-            if (timeLeft <= 0) {
-                clearInterval(countdownProcess);
-                handleCooldownCompletion();
-            }
-        }, 1000);
-    }
-
-    function handleCooldownCompletion() {
-        if (countdown && exit_initiatedByJitsi) {
-            window.location.href='{{ lobby_url }}';
-        } else if (countdown) {
-            completeConsultation();
-        } else {
-            resetCooldown();
-        }
-    }
-
-    function completeConsultation() {
-        {% if session['current_role'] == 'clinician' %}
-        fetch("{{ url_for('consult.conclude_appointment', appointment_id=conference.appointment_id) }}", {
-            method: 'POST',
-            body: JSON.stringify({ conclusion: 1 }),
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin'
-        });
-        {% endif %}
-        window.location.href='{{ lobby_url }}';
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        const options = {
-            roomName: '{{ conference.url }}',  // Conference room name
-            width: '100%',
-            height: '100%',
-            jwt: '{{ jwt }}',
-            parentNode: document.querySelector('#jitsi-container'),
-            configOverwrite: { 
-                startWithAudioMuted: false,
-                prejoinPageEnabled: false,
-                disableDeepLinking: true
-            },
-            interfaceConfigOverwrite: { filmStripOnly: false }
-        };
-        const api = new JitsiMeetExternalAPI('{{ VIDEO_HOST_DOMAIN }}' , options);
-
     
-        api.addListener('videoConferenceLeft', function() {
-            const now = Date.now();
-            console.log('xxConference left');
-           
-            if (now-lastJitsiEventTime > DEBOUNCE_DELAY) {
-                lastJitsiEventTime = now;
-                resetCooldown();
-                startCooldown('Video conference ended', true);
-                
-            }            
-        });
-
-        // Fullscreen toggle
-        $('#fullscreen-toggle').on('click', function() {
-            const iframe = document.getElementById('jitsi-container');
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            } else {
-                iframe.requestFullscreen().catch(err => console.log(err));
-            }
-        });
-
-        {% if session['current_role'] == 'clinician' %}
-        // Handle consultation completion
-        $('#complete-consult').on('click', function() {
-            if (!$('#sign-toggle').prop('checked')) {
-                alert("Please sign the prescription before completing the consultation.");
-            } else {
-                $('#confirmationModal').modal('show');
-                startCooldown('Consultation completed', false);
-            }
-        });
-
-        // Handle Consultation Cancellation
-        $('#cancel-consult').on('click', function() {
-            fetch("{{ url_for('consult.conclude_appointment', appointment_id=conference.appointment_id) }}", {
-                method: 'POST',
-                body: JSON.stringify({ conclusion: 2 }),
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin'
-            }).then(() => {
-                window.location.href='{{ lobby_url }}';
-            });
-        });
-        {% endif %}
-
-        $('#confirm-exit').on('click', function() {
-            // Continue the countdown and execute the redirect
-            countdownInterval = 0;
-            $('#confirmationModal').modal('hide');
-        });
-
-        $('#cancel-exit').on('click', function() {
-            // Cancel the countdown and reset variables
-            $('#confirmationModal').modal('hide');
-            resetCooldown();
-        });
-
-        $('#confirmationModal').on('hidden.bs.modal', function() {
-            if (exit_initiatedByJitsi && countdown) {
-                location.reload();
-            }
-        });
-    });
 </script>
 {% endblock %}

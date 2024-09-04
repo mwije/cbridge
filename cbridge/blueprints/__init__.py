@@ -6,7 +6,7 @@ from .profile import profile_bp
 from .home import home_bp
 from .book import book_bp
 from .consult import consult_bp
-from .emr import emr_bp
+from .emr import emr_bp, emr_fe
 from .public import public_bp
 
 def register_blueprints(app):
@@ -21,6 +21,7 @@ def register_blueprints(app):
     app.register_blueprint(consult_bp)
     logging.info('blueprint consult registered')
     app.register_blueprint(emr_bp)
+    app.register_blueprint(emr_fe)
     logging.info('blueprint emr registered')
     app.register_blueprint(public_bp)
     logging.info('blueprint public registered')

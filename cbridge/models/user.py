@@ -196,6 +196,7 @@ class Clinician(db.Model):
     specialty = db.Column(db.String(50), nullable=True)
     qualifications = db.Column(db.String(50), nullable=True)
     registration = db.Column(db.String(50), nullable=True)
+    contact = db.Column(db.String(25), nullable=True)
 
     user: Mapped['User'] = db.relationship(back_populates='clinician')
     schedules: Mapped[List['Schedule']] = db.relationship(back_populates='clinician')

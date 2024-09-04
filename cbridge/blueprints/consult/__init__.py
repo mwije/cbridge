@@ -6,7 +6,6 @@ from cbridge.models.encounter import *
 from cbridge.extensions import db, bcrypt
 
 from .forms import *
-from .jwt import generate_jwt
 import random, string
 from datetime import datetime, date
 
@@ -58,9 +57,13 @@ def staging(schedule_id=None):
 
             # Create a new Conference entry
             conference = Conference(appointment_id=selected_appointment.id, url=conference_url)
-            db.session.add(conference)
-            db.session.commit()
 
+
+            db.session.add(conference)
+            
+        # Enter patient
+        selected_appointment.start()
+        db.session.commit()
 
         # Redirect clinician to the /tele page
         return redirect(url_for('consult.consultation', conference_id=conference.id))
@@ -214,28 +217,76 @@ def generate_plan(appointment_id):
             db.session.rollback()
             return jsonify({'success': False, 'message': str(e)}), 500
 '''
-@consult_bp.route('/appointment/<int:appointment_id>/sign', methods=['GET'])
+@consult_bp.route('/appointment/<int:appointment_id>/sign', methods=['GET', 'POST'])
 @role_required('clinician')
 def sign_prescription(appointment_id):
+    data = request.json 
+    signed = data.get('signed') 
+
+    if signed == None:
+        response = {
+            "status": "error",
+            "message": "Invalid data provided."
+        }
+        return jsonify(response), 400
+
     # Authorized clinician?
     appointment = db.session.query(Appointment).filter(
         Appointment.id == appointment_id,
     ).order_by(Appointment.id).first()
-    
-    ## add datetime_end for encounter
-    ## generate document and forward it
-    return jsonify({}), 200
 
-@consult_bp.route('/appointment/<int:appointment_id>/close', methods=['GET'])
+    if signed is True:
+        # Code to execute if signed is True
+        appointment.encounter.plan.clinician_sign = True
+        response = {
+            "status": "success",
+            "message": "signature added."
+        }
+
+    elif signed is False:
+        # Code to execute if signed is False
+        appointment.encounter.plan.clinician_sign = False
+        response = {
+            "status": "success",
+            "message": "signature removed."
+        }
+
+    return jsonify(response), 200
+
+
+@consult_bp.route('/appointment/<int:appointment_id>/close', methods=['GET', 'POST'])
 @role_required('clinician')
 def conclude_appointment(appointment_id):
+    data = request.get_json()
+    conclusion = data.get('conclusion')
+
+    if conclusion == None:
+        response = {
+            "status": "error",
+            "message": "Invalid data provided."
+        }
+        return jsonify(response), 400
+
     # Authorized clinician?
     appointment = db.session.query(Appointment).filter(
         Appointment.id == appointment_id,
     ).order_by(Appointment.id).first()
     
-    appointment.conference.mark_close()
-    return jsonify({}), 200
+    match conclusion:
+        case 0: # acknowledge
+            appointment.encounter.queue()
+            response = {'success': True, 'message': 'No action taken'}
+        case 1: # mark as completed
+            appointment.encounter.complete()
+            response = {'success': True, 'message': 'Appointment marked as completed'}
+        case 2: # mark as canceled
+            appointment.encounter.cancel()
+            response = {'success': True, 'message': 'Appointment marked as cancelled'}
+        case default:
+            response = {'success': False, 'message': 'Invalid conclusion value'}
+    
+    db.session.commit()
+    return jsonify(response), 200
 
 
 
@@ -244,8 +295,7 @@ def conclude_appointment(appointment_id):
 def consultation(conference_id):
     conference = Conference.query.get(conference_id)
     conference.exclusive_open()
-    jwt = generate_jwt(user=current_user, conference=conference)
-    
+
     if session['current_role'] == 'clinician':
         lobby_url = url_for('consult.staging')
     else:
@@ -316,6 +366,11 @@ def get_schedule_status(schedule_id):
         Appointment.active == True
     ).order_by(Appointment.id).all()
 
+    # Appointment statuses
+    appointment_statuses = {
+        appointment.id :appointment.status
+        for appointment in appointments
+    }
     # Calculate the total number of active appointments
     total_appointments = len(appointments)
 
@@ -327,6 +382,7 @@ def get_schedule_status(schedule_id):
     # Return status as JSON, including the dynamic queue position
     return jsonify({
         'last_seen_users': last_seen,
+        'appointment_statuses': appointment_statuses,
         'total_appointments': total_appointments,
         'scheduled_appointments': len(scheduled_appointments),
         'queued_appointments': len(queued_appointments),

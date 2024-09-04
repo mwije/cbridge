@@ -92,7 +92,9 @@ def get_unique_filename(path, length=8, extension='', datestamp=False):
     if not os.path.isdir(path):
         raise ValueError("The provided path is not a valid directory")
     while True:
-        filename = random_string(length) + f'_{datetime.now().strftime("%Y%m%d")}' + '.' + extension
+        filename = random_string(length) + f'-{datetime.now().strftime("%Y%m%d")}'
+        if not extension == '':
+            filename = filename  + '.' + extension
         full_path = os.path.join(path, filename)
         if not os.path.exists(full_path):
             return {'filename':filename, 'path':path}

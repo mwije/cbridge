@@ -91,12 +91,22 @@ class Encounter(db.Model):
     def plan_cancel(self):
         if self.plan:
             db.session.delete(self.plan)
-            db.session.commit()
 
-    def close(self):
+    def complete(self):
         if self.appointment:
-            self.appointment.status = 'completed'
-            db.session.commit()
+            self.appointment.complete()
+
+    def cancel(self):
+        if self.appointment:
+            self.appointment.cancel()
+
+    def start(self):
+        if self.appointment:
+            self.appointment.start()
+            
+    def queue(self):
+        if self.appointment:
+            self.appointment.queue()
 
 class Plan(db.Model):
     __tablename__ = 'plans'
@@ -105,6 +115,7 @@ class Plan(db.Model):
     url = db.Column(db.String(50), nullable=True)
     datetime_expiry = db.Column(db.DateTime, nullable=True)
     access_life = db.Column(db.Integer, default=10)
+    clinician_sign = db.Column(db.Boolean, default=False)
 
     encounter: Mapped['Encounter'] = db.relationship(back_populates='plan')
 

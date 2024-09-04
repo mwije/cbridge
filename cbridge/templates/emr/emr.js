@@ -1,4 +1,140 @@
 document.addEventListener("DOMContentLoaded", function() {
+    let countdown = false;
+    let countdownInterval;
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const cancellationModal = new bootstrap.Modal(document.getElementById('cancellationModal'));
+    let exit_initiatedByJitsi = false;
+    let lastJitsiEventTime = 0; // Timestamp of the last Jitsi event
+    const DEBOUNCE_DELAY = 10000;
+
+    const options = {
+        roomName: '{{ conference.url }}',  // Conference room name
+        width: '100%',
+        height: '100%',
+        jwt: '{{ jwt }}',
+        parentNode: document.querySelector('#jitsi-container'),
+        configOverwrite: { 
+            startWithAudioMuted: false,
+            prejoinPageEnabled: false,
+            disableDeepLinking: true
+        },
+        interfaceConfigOverwrite: { filmStripOnly: false }
+    };
+    const api = new JitsiMeetExternalAPI('{{ VIDEO_HOST_DOMAIN }}', options);
+
+    api.addListener('videoConferenceLeft', function() {
+        const now = Date.now();
+        console.log('Conference left', now - lastJitsiEventTime);
+
+        if (now - lastJitsiEventTime > DEBOUNCE_DELAY) {
+            lastJitsiEventTime = now;
+            resetCooldown();
+            startCooldown('Video conference ended', true);
+        }
+    });
+    
+    // Fullscreen toggle
+    document.getElementById('fullscreen-toggle').addEventListener('click', function() {
+        const iframe = document.getElementById('jitsi-container');
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            iframe.requestFullscreen().catch(err => console.log(err));
+        }
+    });
+
+    {% if session['current_role'] == 'clinician' %}
+    // Handle consultation completion
+    document.getElementById('complete-consult').addEventListener('click', function() {
+        if (document.getElementById('sign-toggle').textContent != 'Unsign') {
+            alert("Please sign the prescription before completing the consultation.");
+        } else {
+            // Show the confirmation modal
+            confirmationModal.show();
+            startCooldown('Consultation completed', false);
+        }
+    });
+
+    // Handle Consultation Cancellation
+    document.getElementById('cancel-consult').addEventListener('click', function() {
+        cancellationModal.show();
+    });
+
+    // Handle Consultation Cancellation
+    // Show the new confirmation modal when 'pause-consult' is clicked
+    document.getElementById('pause-consult').addEventListener('click', function() {
+        startCooldown('Consultation completed', false);
+    });
+
+    // Handle the confirmation button click in the new modal
+    document.getElementById('confirm-cancellation').addEventListener('click', function() {
+        // Proceed with the action
+        exitFunction(2); // Call your function or action
+    });
+
+    document.getElementById('cancel-cancellation').addEventListener('click', function() {
+        // Cancel the countdown and reset variables
+        cancellationModal.hide();
+        resetCooldown();
+    });
+    {% endif %}
+
+    document.getElementById('confirm-exit').addEventListener('click', function() {
+        // Continue the countdown and execute the redirect
+        countdownInterval = 0;
+        confirmationModal.hide();
+    });
+
+    document.getElementById('cancel-exit').addEventListener('click', function() {
+        // Cancel the countdown and reset variables
+        confirmationModal.hide();
+        resetCooldown();
+    });
+
+    document.getElementById('confirmationModal').addEventListener('hidden.bs.modal', function() {
+        if (exit_initiatedByJitsi && countdown) {
+            location.reload();
+        }
+    });
+    
+    function resetCooldown() {
+        if (exit_initiatedByJitsi && countdown) {
+            location.reload();
+        }
+        countdown = false;
+        countdownInterval = 3;
+        exit_initiatedByJitsi = false;
+        confirmationModal.hide();
+    }
+    
+    function startCooldown(reason, initiatedByJitsi = false) {
+        exit_initiatedByJitsi = initiatedByJitsi;
+        countdown = true;
+        let timeLeft = 3;
+        document.getElementById('cooldown-timer').textContent = `Redirecting in ${timeLeft} seconds...`;
+        confirmationModal.show();
+    
+        let countdownProcess = setInterval(function() {
+            timeLeft--;
+            document.getElementById('cooldown-timer').textContent = `Redirecting in ${timeLeft} seconds...`;
+            if (timeLeft <= 0) {
+                clearInterval(countdownProcess);
+                handleCooldownCompletion();
+            }
+        }, 1000);
+    }
+    
+    function handleCooldownCompletion() {
+        if (countdown && exit_initiatedByJitsi) {
+            window.location.href = '{{ lobby_url }}';
+        } else if (countdown) {
+            exitFunction(1);
+        } else {
+            resetCooldown();
+        }
+    }
+    
+
     let currentDrugId = null;
     let autocompleteDrugs = [];
     let fetchedInstructions = [];
@@ -331,22 +467,142 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(data => {
             if (data.success) {
                 // Create new button to preview the generated document
-                const previewButton = document.createElement('button');
-                previewButton.id = 'preview-plan';
-                previewButton.className = 'btn btn-info';
-                previewButton.textContent = 'Preview Plan';
-                previewButton.onclick = () => window.open(data.document_url, '_blank');
 
-                // Append the new button to the control panel
-                document.querySelector('.consultation-controls').appendChild(previewButton);
+                let previewButton = document.getElementById('preview-plan');
+                if (!previewButton) {
+                    // Create new button if it does not exist
+                    previewButton = document.createElement('button');
+                    previewButton.id = 'preview-plan';
+                    previewButton.className = 'btn btn-info';
+                    previewButton.textContent = 'View Prescription';
+                    
+                    // Insert the button before the "Sign" button
+                    const signButton = document.getElementById('sign-toggle');
+                    const parent = signButton.parentNode;
+                    parent.insertBefore(previewButton, signButton);
+                }
 
-                // Simulate a click on the preview button
+                // Function to show the modal with the document
+                const showPreview = (url) => {
+                    const modal = document.getElementById('previewModal');
+                    const iframe = document.getElementById('previewIframe');
+                    const closeBtn = document.getElementById('previewClose');
+                    const signButton = document.getElementById('sign-toggle');
+                    signButton.classList.add('button-over-modal');
+                    // Set iframe source to document URL
+                    iframe.src = url;
+        
+                    // Display the modal
+                    modal.style.display = 'block';
+        
+                    // Close the modal when the close button is clicked
+                    closeBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        iframe.src = ''; 
+                        signButton.classList.remove('button-over-modal');
+                    };
+        
+                    // Close the modal when clicking outside of it
+                    window.onclick = (event) => {
+                        if (event.target === modal) {
+                            modal.style.display = 'none';
+                            iframe.src = '';
+                            signButton.classList.remove('button-over-modal');
+                        }
+                    };
+                };
+        
+                // Set the onclick behavior for the preview button
+                previewButton.onclick = () => showPreview(data.document_url);
+        
                 previewButton.click();
             } else {
                 alert('There was an error generating the plan.');
             }
         });
     }
+
+    // Handle Sign Toggle
+    function handleSignToggle() {
+        const signButton = document.getElementById('sign-toggle');
+        const signState = signButton.textContent === 'Sign';
+        let generateButton = document.getElementById('generate-prescription')
+        let previewButton = document.getElementById('preview-plan');
+        let completeButton = document.getElementById('complete-consult');
+        // Check the condition for button-over-modal class
+        if (signState && signButton.classList.contains('button-over-modal')) {
+            fetch(`{{ url_for('consult.sign_prescription', appointment_id=conference.appointment_id) }}`, {
+                method: 'POST',
+                body: JSON.stringify({ signed: true }),
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            }).then(() => {
+                // Change button text to "Unsign" and apply dull color
+                signButton.textContent = 'Unsign';
+                signButton.style.backgroundColor = '#dc3545'; // Dull color
+                signButton.style.color = '#FFF';
+                completeButton.style.backgroundColor = '#28a745';
+                completeButton.disabled = false;
+                generateButton.disabled = true;
+            });
+        } else if (signState && !signButton.classList.contains('button-over-modal')) {
+            // Simulate a click on the preview button
+            
+            if (previewButton) {
+                previewButton.click();
+            }
+        } else if (!signState) {
+            fetch(`{{ url_for('consult.sign_prescription', appointment_id=conference.appointment_id) }}`, {
+                method: 'POST',
+                body: JSON.stringify({ signed: false }),
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            }).then(() => {
+                // Change button text to "Sign" and reset color
+                signButton.textContent = 'Sign';
+                signButton.style.backgroundColor = ''; // Reset to original color
+                signButton.style.color = ''; // Reset text color
+                completeButton.style.backgroundColor = '#777';
+                completeButton.disabled = true;
+                generateButton.disabled = false;
+            });
+        }
+    }
+    
+    function exitFunction(conclusion) {
+        // conclusion 1 = complete, 0 = do nothing, 1 = canceled properly
+        fetch("{{ url_for('consult.conclude_appointment', appointment_id=conference.appointment_id) }}", {
+            method: 'POST',
+            body: JSON.stringify({ conclusion: conclusion }),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin'
+        }).then(response => {
+            // Check if the response status is OK (status in the range 200-299)
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            // Parse the JSON response
+            return response.json();
+        })
+        .then(data => {
+            // Check if the response JSON contains success: true
+            if (data.success) {
+                // Redirect to the lobby URL if success
+                window.location.href = '{{ lobby_url }}';
+            } else {
+                // Alert if success is false
+                alert('Completion failed');
+            }
+        })
+        .catch(error => {
+            // Handle any errors that occurred during fetch
+            console.error('There was a problem with the fetch operation:', error);
+            alert('An error occurred while processing your request.');
+        });
+    }
+    
+    
+
 
     // Event Listeners
     document.getElementById('new-prescription-drug').addEventListener('input', enableAddButton);
@@ -355,6 +611,8 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('add-prescription-btn').addEventListener('click', addNewPrescription);
     document.getElementById('prescription-list').addEventListener('click', removePrescription);
     document.getElementById('generate-prescription').addEventListener('click', handleFormSubmission);
+    document.getElementById('sign-toggle').addEventListener('click', handleSignToggle);
+
 
     initAutocomplete();
     initInstructionAutocomplete();

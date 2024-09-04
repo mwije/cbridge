@@ -1,93 +1,135 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ title }}{% endblock %}
+{% block head %}
+<style>
+    .status-ongoing {
+        background-color: #f7b314;
+        color: black;
+    }
+    .status-completed {
+        background-color: #ccceca;
+        color: black;
+    }
+    .status-cancelled {
+        background-color: #847a73;
+        color: #bdbdbd;
+    }
+    .status-queued {
+        background-color: #e1fff9;
+        color: black;
+    }
+    .status-scheduled, .status-default {
+        background-color: white;
+        color: black;
+    }
+    .status-text {
+        font-size: .8em;
+        border-radius: .5em;
+        background: #666666a3;
+        text-align: center;
+        color: #eee;
+        font-variant-caps: petite-caps;
+        border: #7773734f solid 1px;
+        margin: 0;
+    }
+</style>
+{% endblock %}
 {% block content %}
-    <h1>{{ title }}</h1>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Left Sidebar: Schedules List -->
-            <div class="col-md-3">
-                <ul class="list-group">
-                    {% for schedule in schedules %}
-                        <li class="list-group-item {% if schedule.id == selected_schedule_id %}active{% endif %}">
-                            <a href="{{ url_for('consult.staging', schedule_id=schedule.id) }}" class="{% if schedule.id == selected_schedule_id %}text-white{% endif %}">
-                                {{ schedule.date }} ({{ schedule.time_start }} - {{ schedule.time_end }})
-                                {% if schedule.clinic and schedule.clinic.address %}
-                                    @ {{ schedule.clinic.address }}
-                                {% endif %}
-                            </a>
-                        </li>
+<h1>{{ title }}</h1>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Sidebar: Schedules List -->
+        <div class="col-md-3">
+            <ul class="list-group">
+                {% for schedule in schedules %}
+                <li class="list-group-item {% if schedule.id == selected_schedule_id %}active{% endif %}">
+                    <a href="{{ url_for('consult.staging', schedule_id=schedule.id) }}"
+                        class="{% if schedule.id == selected_schedule_id %}text-white{% endif %}">
+                        {{ schedule.date }} ({{ schedule.time_start }} - {{ schedule.time_end }})
+                        {% if schedule.clinic and schedule.clinic.address %}
+                        @ {{ schedule.clinic.address }}
+                        {% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Middle Section: Appointments List -->
+        <div class="col-md-6">
+            {% if appointments %}
+            <!-- Toggle button to mark active schedule -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Appointments</h4>
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="toggle-schedule" {% if
+                        session['current_schedule'] !=schedule_id %}unchecked{% else %}checked{% endif %}>
+                    <label class="custom-control-label" for="toggle-schedule">Active</label>
+                </div>
+            </div>
+            {% else %}
+            <span>No appointments have been made for this slot.</span>
+            {% endif %}
+
+            {% if session.current_schedule and session.current_schedule.id != selected_schedule_id %}
+            <div class="alert alert-warning">
+                You are currently working on another schedule:
+                <a href="{{ url_for('consult.staging', schedule_id=session.current_schedule.id) }}" class="alert-link">
+                    {{ session.current_schedule.date }} ({{ session.current_schedule.time_start }} - {{
+                    session.current_schedule.time_end }})
+                </a>
+            </div>
+            {% endif %}
+
+            <form id="appointment-form" method="POST" action="{{ url_for('consult.staging') }}">
+                <ul class="list-group" id="appointment-list">
+                    {% for appointment in appointments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="appointment{{ appointment.id }}" name="selected_appointment"
+                                class="custom-control-input" value="{{ appointment.id }}"
+                                data-patient-id="{{ appointment.patient_id }}" data-status="{{ appointment.status }}">
+                            <label class="custom-control-label" for="appointment{{ appointment.id }}">
+                                {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{
+                                appointment.patient.sex }}
+                            <p class="status-text"></p>
+                            </label>
+                        </div>
+                        <label class="last-seen"></label>
+                    </li>
                     {% endfor %}
                 </ul>
-            </div>
-    
-            <!-- Middle Section: Appointments List -->
-            <div class="col-md-6">
+                <!-- Submit button is placed dynamically using JavaScript -->
                 {% if appointments %}
-                    <!-- Toggle button to mark active schedule -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4>Appointments</h4>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="toggle-schedule" 
-                            {% if session['current_schedule'] != schedule_id %}unchecked{% else %}checked{% endif %}>
-                            <label class="custom-control-label" for="toggle-schedule">Active</label>
-                        </div>
-                    </div>
+                <button type="submit" id="submit-button" class="btn btn-primary mt-3">Start Appointment</button>
                 {% endif %}
+            </form>
+        </div>
 
-                {% if session.current_schedule and session.current_schedule.id != selected_schedule_id %}
-                    <div class="alert alert-warning">
-                        You are currently working on another schedule: 
-                        <a href="{{ url_for('consult.staging', schedule_id=session.current_schedule.id) }}" class="alert-link">
-                            {{ session.current_schedule.date }} ({{ session.current_schedule.time_start }} - {{ session.current_schedule.time_end }})
-                        </a>
+        <!-- Right Sidebar: Appointment Statistics and Patient Details -->
+        <div class="col-md-3">
+            <!-- Appointment Statistics Section -->
+            <div id="appointment-stats" class="border p-3 mb-3">
+                <h4>Appointment Statistics</h4>
+                <div class="d-flex flex-column">
+                    <div class="d-flex justify-content-between mb-2">
+                        <p><strong>Completed:</strong> <span id="completed-appointments">0</span></p>
                     </div>
-                {% endif %}
-
-                <form id="appointment-form" method="POST" action="{{ url_for('consult.staging') }}">
-                    <ul class="list-group" id="appointment-list">
-                        {% for appointment in appointments %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div class="custom-control custom-radio">
-                                    <input type="radio" id="appointment{{ appointment.id }}" name="selected_appointment" class="custom-control-input" value="{{ appointment.id }}" data-patient-id="{{ appointment.patient_id }}" {% if loop.first %}checked{% endif %}>
-                                    <label class="custom-control-label" for="appointment{{ appointment.id }}">
-                                        {{ appointment.patient.user.name }}, {{ appointment.patient.user.age() }} years, {{ appointment.patient.sex }}
-                                    </label>
-                                </div>
-                                <label class="last-seen"></label>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                    <!-- Submit button is placed dynamically using JavaScript -->
-                    {% if appointments %}
-                    <button type="submit" id="submit-button" class="btn btn-primary mt-3">Select Appointment</button>
-                    {% endif %}
-                </form>
-            </div>
-            
-            <!-- Right Sidebar: Appointment Statistics and Patient Details -->
-            <div class="col-md-3">
-                <!-- Appointment Statistics Section -->
-                <div id="appointment-stats" class="border p-3 mb-3">
-                    <h4>Appointment Statistics</h4>
-                    <div class="d-flex flex-column">
-                        <div class="d-flex justify-content-between mb-2">
-                            <p><strong>Completed:</strong> <span id="completed-appointments">0</span></p>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <p><strong>Queued:</strong> <span id="queued-appointments">0</span></p>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <p><strong>Scheduled:</strong> <span id="scheduled-appointments">0</span></p>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <p><strong>Total:</strong> <span id="total-appointments">0</span></p>
-                        </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <p><strong>Queued:</strong> <span id="queued-appointments">0</span></p>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <p><strong>Scheduled:</strong> <span id="scheduled-appointments">0</span></p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Total:</strong> <span id="total-appointments">0</span></p>
                     </div>
                 </div>
+            </div>
 
             <!-- Right Sidebar: Patient Details -->
-                <div id="patient-details" class="border p-3">
+            <div id="patient-details" class="border p-3">
                 {% if appointments %}
                 <h4>Patient Details</h4>
                 <p><strong>Name:</strong> <span id="patient-name">Select an appointment</span></p>
@@ -98,42 +140,43 @@
                 <p><strong>Current Medications:</strong> <span id="patient-current-medications">-</span></p>
                 <p><strong>Last Visit:</strong> <span id="patient-last-visit">-</span></p>
                 {% endif %}
-                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Animated banner for success/failure notifications -->
-    <div id="notification-banner" class="alert alert-info alert-dismissible fade show" role="alert" style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1050;">
-        <span id="notification-message"></span>
-    </div>
+<!-- Animated banner for success/failure notifications -->
+<div id="notification-banner" class="alert alert-info alert-dismissible fade show" role="alert"
+    style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1050;">
+    <span id="notification-message"></span>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleSchedule = document.getElementById('toggle-schedule');
-            const form = document.getElementById('appointment-form');
-            const submitButton = document.getElementById('submit-button');
-            const notificationBanner = document.getElementById('notification-banner');
-            const notificationMessage = document.getElementById('notification-message');
-            const scheduleId = '{{ schedule_id }}';
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleSchedule = document.getElementById('toggle-schedule');
+        const form = document.getElementById('appointment-form');
+        const submitButton = document.getElementById('submit-button');
+        const notificationBanner = document.getElementById('notification-banner');
+        const notificationMessage = document.getElementById('notification-message');
+        const scheduleId = '{{ schedule_id }}';
 
-            // Initialize the toggle state and form elements based on active schedule
-            if (!toggleSchedule.checked) {
-                form.querySelectorAll('input[name="selected_appointment"]').forEach(input => input.disabled = true);
-                if (submitButton) submitButton.disabled = true;
-            }
+        // Initialize the toggle state and form elements based on active schedule
+        if (!toggleSchedule.checked) {
+            form.querySelectorAll('input[name="selected_appointment"]').forEach(input => input.disabled = true);
+            if (submitButton) submitButton.disabled = true;
+        }
 
-            // Toggle schedule active state
-            toggleSchedule.addEventListener('change', function() {
-                const isActive = toggleSchedule.checked;
-                fetch(`/schedule/{{ schedule_id }}/session`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        
-                    },
-                    body: JSON.stringify({ active: isActive })
-                })
+        // Toggle schedule active state
+        toggleSchedule.addEventListener('change', function () {
+            const isActive = toggleSchedule.checked;
+            fetch(`/schedule/{{ schedule_id }}/session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+
+                },
+                body: JSON.stringify({ active: isActive })
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -159,41 +202,41 @@
                     toggleSchedule.checked = !isActive;  // Revert the toggle state
                     showNotification();
                 });
-            });
+        });
 
-            // Function to show notification banner
-            function showNotification() {
-                notificationBanner.style.display = 'block';
-                setTimeout(() => {
-                    notificationBanner.style.display = 'none';
-                }, 3000);
+        // Function to show notification banner
+        function showNotification() {
+            notificationBanner.style.display = 'block';
+            setTimeout(() => {
+                notificationBanner.style.display = 'none';
+            }, 3000);
+        }
+
+        // Load patient details when an appointment is selected
+        form.addEventListener('change', function (event) {
+            if (event.target.name === 'selected_appointment' && toggleSchedule.checked) {
+                const appointmentId = event.target.value;
+                const patientId = event.target.dataset.patientId;
+
+                fetch(`/patient/${patientId}/summary/json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('patient-name').textContent = data.name;
+                        document.getElementById('patient-age').textContent = data.age;
+                        document.getElementById('patient-sex').textContent = data.sex;
+                        // Additional details...
+                        document.getElementById('patient-medical-history').textContent = data.medical_history;
+                        document.getElementById('patient-allergies').textContent = data.allergies;
+                        document.getElementById('patient-current-medications').textContent = data.current_medications;
+                        document.getElementById('patient-last-visit').textContent = data.last_visit;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching patient details:', error);
+                    });
             }
+        });
 
-            // Load patient details when an appointment is selected
-            form.addEventListener('change', function(event) {
-                if (event.target.name === 'selected_appointment' && toggleSchedule.checked) {
-                    const appointmentId = event.target.value;
-                    const patientId = event.target.dataset.patientId;
-
-                    fetch(`/patient/${patientId}/summary/json`)
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById('patient-name').textContent = data.name;
-                            document.getElementById('patient-age').textContent = data.age;
-                            document.getElementById('patient-sex').textContent = data.sex;
-                            // Additional details...
-                            document.getElementById('patient-medical-history').textContent = data.medical_history;
-                            document.getElementById('patient-allergies').textContent = data.allergies;
-                            document.getElementById('patient-current-medications').textContent = data.current_medications;
-                            document.getElementById('patient-last-visit').textContent = data.last_visit;
-                        })
-                        .catch(error => {
-                            console.error('Error fetching patient details:', error);
-                        });
-                }
-            });
-
-            // Function to fetch appointment status and update UI
+        // Function to fetch appointment status and update UI
         function fetchScheduleStatus() {
             fetch(`/schedule/${scheduleId}/status`)
                 .then(response => response.json())
@@ -204,43 +247,97 @@
                     document.getElementById('queued-appointments').textContent = data.queued_appointments;
                     document.getElementById('completed-appointments').textContent = data.completed_appointments;
 
-            // Helper function to format the relative time
-            function formatRelativeTime(lastSeenDate) {
-                const now = new Date();
-                const lastSeen = new Date(lastSeenDate);
-                const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+                    // Helper function to format the relative time
+                    function formatRelativeTime(lastSeenDate) {
+                        const now = new Date();
+                        const lastSeen = new Date(lastSeenDate);
+                        const diffInSeconds = Math.floor((now - lastSeen) / 1000);
 
-                if (diffInSeconds < 30) {
-                    return 'now';
-                } else if (diffInSeconds < 60) {
-                    return `${diffInSeconds} seconds ago`;
-                } else if (diffInSeconds < 3600) {
-                    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-                } else if (diffInSeconds < 86400) {
-                    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-                } else if (diffInSeconds < 2592000) { // 30 days
-                    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-                } else if (diffInSeconds < 31536000) { // 365 days
-                    return `${Math.floor(diffInSeconds / 2592000)} months ago`;
-                } else {
-                    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
-                }
-            }
+                        if (diffInSeconds < 30) {
+                            return 'now';
+                        } else if (diffInSeconds < 60) {
+                            return `${diffInSeconds} seconds ago`;
+                        } else if (diffInSeconds < 3600) {
+                            return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+                        } else if (diffInSeconds < 86400) {
+                            return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+                        } else if (diffInSeconds < 2592000) { // 30 days
+                            return `${Math.floor(diffInSeconds / 86400)} days ago`;
+                        } else if (diffInSeconds < 31536000) { // 365 days
+                            return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+                        } else {
+                            return `${Math.floor(diffInSeconds / 31536000)} years ago`;
+                        }
+                    }
 
-            // Update last seen users
-            const lastSeen = data.last_seen_users;
-            document.querySelectorAll('#appointment-list .list-group-item').forEach(item => {
-                const patientId = item.querySelector('input').dataset.patientId;
-                const lastSeenDate = lastSeen[patientId];
-                if (lastSeenDate) {
-                    const formattedTime = formatRelativeTime(lastSeenDate);
-                    item.querySelector('.last-seen').textContent = `${formattedTime}`;
-                }
-            });
+                    // Update last seen users
+                    const lastSeen = data.last_seen_users;
+                    
+                    document.querySelectorAll('#appointment-list .list-group-item').forEach(item => {
+                        const patientId = item.querySelector('input').dataset.patientId;
+                        const lastSeenDate = lastSeen[patientId];
+                        if (lastSeenDate) {
+                            const formattedTime = formatRelativeTime(lastSeenDate);
+                            item.querySelector('.last-seen').textContent = `${formattedTime}`;
+                        }
+                    });
+                    // Update statuses
+                    const statuses = data.appointment_statuses;
+
+                    for (const [appointmentId, status] of Object.entries(statuses)) {
+                        const radioElement = document.querySelector(`input[type="radio"][value="${appointmentId}"]`);
+                        if (radioElement) {
+                            radioElement.dataset.status = status;  // Update data-status attribute
+
+                            // Style to status
+                            var listItem = radioElement.parentElement.parentElement;
+                            listItem.classList.remove('status-ongoing', 'status-completed', 'status-cancelled', 'status-queued', 'status-scheduled', 'status-default');
+                            var listItem2 = radioElement.parentNode.querySelector('p');
+
+                            // Apply new status class
+                            switch (status) {
+                                case 'ongoing':
+                                    listItem.classList.add('status-ongoing');
+                                    listItem2.style.backgroundColor = '#000';
+                                    radioElement.checked = true;
+                                    break;
+                                case 'completed':
+                                    listItem.classList.add('status-completed');
+                                    listItem2.style.backgroundColor = '#1e8808a3';
+                                    break;
+                                case 'cancelled':
+                                    listItem.classList.add('status-cancelled');
+                                    listItem2.style.backgroundColor = '#310606a3';
+                                    break;
+                                case 'queued':
+                                    listItem.classList.add('status-queued');
+                                    listItem2.style.backgroundColor = '#053e4fa3';
+                                    break;
+                                case 'scheduled':
+                                case '':
+                                    listItem.classList.add('status-scheduled');
+                                    listItem2.style.backgroundColor = '#222';
+                                    break;
+                                default:
+                                    listItem.classList.add('status-default');
+                                    listItem2.style.backgroundColor = '#000';
+                                    break;
+                            }
+
+                            // Display status
+                            var listItem2 = radioElement.parentNode.querySelector('p');
+                            listItem2.textContent = status;
+
+                        }
+                    }
+
                 })
                 .catch(error => {
                     console.error('Error fetching appointment status:', error);
                 });
+
+
+
         }
 
         // Fetch data every 30 seconds
@@ -250,7 +347,7 @@
         fetchScheduleStatus();
     });
 
-    </script>
-    
-     
+</script>
+
+
 {% endblock %}

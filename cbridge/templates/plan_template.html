@@ -9,14 +9,25 @@
             size: A4 portrait;
             margin: .6in .8in .2in .8in;
         }
-        body {
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
             font-family: 'Arial', sans-serif;
             font-size: .9em;
-            margin: 20px;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
-            margin: auto;
+            width: 100%;
+            position: relative; 
+        }
+        body {
+            justify-content: space-between;
+            width: 100%;
+        }
+        .content {
+            width: 100%;
+            margin: 0;
+            padding-bottom: 20px;
         }
         .header {
             text-align: right;
@@ -87,10 +98,10 @@
         .prescription-info td {
             color: #333;
         }
-        .clinician-info, .verification-box {
+        .clinician-info {
             text-align: center;
             float: left;
-            width: 65%;
+            width: 45%;
         }
         .verification-box {
             border: 1px solid #555;
@@ -103,6 +114,7 @@
             line-height: 1;
             width: 30%;
             border-radius: 1em;
+            text-align: center;
         }
         .verification-box p {
             margin: 0;
@@ -123,87 +135,100 @@
             height: 120px;
         }
         .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
             text-align: center;
             font-size: 12px;
             color: #999;
-            margin-top: 30px;
-            bottom: 1em;
+            padding: 10px;
+            border-top: 1px solid #ddd;
         }
+        table {
+            width: 100%;
+        }
+
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>{{ header }}</h1>
-        {{ encounter.datetime_end | day_of_week }}, {{ encounter.datetime_end.strftime('%Y-%m-%d (%-I:%M %p)') }}
-    </div>
-    <h2>Prescription</h2>
-    <div class="content-box">
-        <h3>Patient Information</h3>
-        <table class="patient-info">
-            <tr>
-                <td class="label"><strong>Name:</strong></td>
-                <td class="value">{% if patient.user.sex=='male' %}Mr. {% else %}Ms. {% endif %}{{ patient.user.name }}</td>
-            </tr>
-            <tr>
-                <td class="label"><strong>Age:</strong></td>
-                <td class="value">{{ patient.user.age() }} years</td>
-            </tr>
-            <tr>
-                <td class="label"><strong>Gender:</strong></td>
-                <td class="value">{{ patient.user.sex }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="content-box">
-        <h3>Prescriptions</h3>
-        <div class="prescription-info">
-            <table>
-                {% for item in prescriptions %}
+    <div class="content">
+        <div class="header">
+            <h1>{{ header }}</h1>
+            {{ encounter.datetime_end | day_of_week }}, {{ encounter.datetime_end.strftime('%Y-%m-%d (%-I:%M %p)') }}
+        </div>
+        <h2>Prescription</h2>
+        <div class="content-box">
+            <h3>Patient Information</h3>
+            <table class="patient-info">
                 <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><strong>{{ item.drug.name }}</strong></td>
-                    <td>{{ item.instruction }}</td>
-                    <td>{{ item.duration }} days</td>
+                    <td class="label"><strong>Name:</strong></td>
+                    <td class="value">{% if patient.user.sex=='male' %}Mr. {% else %}Ms. {% endif %}{{ patient.user.name }}</td>
                 </tr>
-                {% endfor %}
+                <tr>
+                    <td class="label"><strong>Age:</strong></td>
+                    <td class="value">{{ patient.user.age() }} years</td>
+                </tr>
+                <tr>
+                    <td class="label"><strong>Gender:</strong></td>
+                    <td class="value">{{ patient.user.sex }}</td>
+                </tr>
             </table>
         </div>
-    </div>
 
-    {% if plan_note %}
-    <div class="content-box">
-        <h3>Plan Notes</h3>
-        <p>{{ plan_note }}</p>
-    </div>
-    {% endif %}
-
-    <div class="clinician-and-verification">
-        <div class="clinician-info">
-            <h3>Ordered by</h3>
-            <div>Dr. {{ clinician.professional_name }}</div>
-            {% if clinician.specialty %}
-            <div>{{ clinician.specialty }}</div>
-            {% endif %}
-            {% if clinician.qualifications %}
-            <div>{{ clinician.qualifications }}</div>
-            {% endif %}
-            {% if clinician.registration %}
-            <div>{{ clinician.registration }}</div>
-            {% endif %}
-        </div>
-
-        <div class="verification-box">
-            <strong style="background: black;padding: 0.5em;color: white;border-radius: 1em;">SCAN TO VERIFY</strong>
-            <div class="qr-code">
-                <img src="{{ qr_code_url }}" alt="QR Code">
+        <div class="content-box">
+            <h3>Prescriptions</h3>
+            <div class="prescription-info">
+                <table>
+                    {% for item in prescriptions %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ item.drug.name }}</strong></td>
+                        <td>{{ item.instruction }}</td>
+                        <td>x &nbsp;&nbsp;{{ item.duration }} days</td>
+                    </tr>
+                    {% endfor %}
+                </table>
             </div>
-            <p><a href="{{ verification_url }}">{{ verification_url }}</a></p>
         </div>
-    </div>
 
-    <div class="footer">
-        Generated by XX System. This document bears no signature. Scan the QR code to verify this prescription.
+        {% if plan_note %}
+        <div class="content-box">
+            <h3>Notes</h3>
+            <p>{{ plan_note | replace('\n', '<br>') | safe }}</p>
+        </div>
+        {% endif %}
+
+        <div class="clinician-and-verification">
+            <div class="clinician-info">
+                <h3>Ordered by</h3>
+                <div>Dr. {{ clinician.professional_name }}</div>
+                {% if clinician.specialty %}
+                <div>{{ clinician.specialty }}</div>
+                {% endif %}
+                {% if clinician.qualifications %}
+                <div>{{ clinician.qualifications }}</div>
+                {% endif %}
+                {% if clinician.registration %}
+                <div>{{ clinician.registration }}</div>
+                {% endif %}
+                {% if clinician.contact %}
+                <div>{{ clinician.contact }}</div>
+                {% endif %}
+            </div>
+
+            <div class="verification-box">
+                <strong style="background: black;padding: 0.5em;color: white;border-radius: 1em;">SCAN TO VERIFY</strong>
+                <div class="qr-code">
+                    <img src="{{ qr_code_url }}" alt="QR Code">
+                </div>
+                <p>or visit:<br><span style='color:blue; font-family: Calibri;' href="{{ verification_url }}">{{ verification_url }}</span></p>
+            </div>
+        </div>
+
+        <div class="footer">
+            This document requires no signature. Scan the QR code to verify authenticity. Generated by cBridge Teleconsultation System.
+        </div>
     </div>
 </body>
 </html>

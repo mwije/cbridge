@@ -4,6 +4,7 @@ from cbridge.decorators import role_required
 from cbridge.models.user import *
 from cbridge.models.library import *
 
+from .frontend import *
 from cbridge.extensions import db, bcrypt
 
 emr_bp = Blueprint('emr', __name__)

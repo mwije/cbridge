@@ -83,7 +83,21 @@ class Appointment(db.Model):
     conference: Mapped['Conference'] = db.relationship(back_populates='appointment')
     encounter: Mapped['Encounter'] = db.relationship(back_populates='appointment')
 
+    def complete(self):
+        if self:
+            self.status = 'completed'
 
+    def cancel(self):
+        if self:
+            self.status = 'cancelled'
+
+    def start(self):
+        if self:
+            self.status = 'ongoing'
+            
+    def queue(self):
+        if self:
+            self.status = 'queued'
 
 class Conference(db.Model):
     __tablename__ = 'conferences'
