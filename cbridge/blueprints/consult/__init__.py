@@ -186,8 +186,8 @@ def generate_plan(appointment_id):
         # Create a new encounter
         encounter = Encounter(
             appointment_id=appointment_id,
-            datetime_start=datetime.utcnow(),
-            datetime_end=datetime.utcnow(),
+            datetime_start=datetime.now(),
+            datetime_end=datetime.now(),
             reason=data['reason'],
             history=data['history'],
             findings=data['findings'],
