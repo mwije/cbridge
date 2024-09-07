@@ -52,7 +52,7 @@
 
     .important-content p{
         text-align: center;
-        border: black 1px solid;
+        border: #bbb 1px solid;
     }
 </style>
 {% endblock %}
@@ -61,30 +61,37 @@
     <div class="container mt-4">
         <!-- Video Consultation Section -->
         <div class="row mb-3">
-            <div class="col-md-8">
+            <div class="col-md-{% if session['current_role'] == 'clinician' %}8{% else %}12{% endif %} justify-content-center">
                 <div id="jitsi-container" class="container mt-4"></div>
+                {% if session['current_role'] != 'clinician' %}
+                    <button id="fullscreen-toggle" class="btn btn-secondary">Toggle Fullscreen</button>
+                {% endif %}
             </div>
         
 
             <!-- Right-side Column -->
+            {% if session['current_role'] == 'clinician' %}
             <div class="col-md-4">
                 <!-- Place your content here -->
                 <div class="important-content">
-                    <!-- Example content -->
                     <p style="color:red">Allergies</p>
                     <p>Ongoing Problems</p>
                     <p>Ongoing Medication</p>
                 </div>
+                
                 <div style="display: flex;justify-content: center;">
-                    <button id="fullscreen-toggle" class="btn btn-secondary">Toggle Fullscreen</button>
                     <!-- Include Consultation UI for Clinician -->
-                    {% if session['current_role'] == 'clinician' %}
+                    <button id="fullscreen-toggle" class="btn btn-secondary">Toggle Fullscreen</button>
                     {% include 'consultation_controls.html' %}
-                    {% endif %}
                 </div>
+               
             </div>
+            {% endif %}
             <script src='{{ VIDEO_HOST_URL }}video/external_api.js'></script>
-    </div>
+        
+        </div>
+        
+    
 
         {% if session['current_role'] == 'clinician' %}
         {% include 'consultation_clinician.html' %}
