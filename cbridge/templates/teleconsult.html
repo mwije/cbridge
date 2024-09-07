@@ -47,6 +47,12 @@
         top: 90%; /* Adjust the distance from the top as needed */
         right: 20px; /* Adjust the distance from the right as needed */
         z-index: 1100; /* Ensure it's above the modal (which has a z-index of 1000) */
+        width: 5em;
+    }
+
+    .important-content p{
+        text-align: center;
+        border: black 1px solid;
     }
 </style>
 {% endblock %}
@@ -55,8 +61,20 @@
     <div class="container mt-4">
         <!-- Video Consultation Section -->
         <div class="row mb-3">
-            <div class="col">
+            <div class="col-md-8">
                 <div id="jitsi-container" class="container mt-4"></div>
+            </div>
+        
+
+            <!-- Right-side Column -->
+            <div class="col-md-4">
+                <!-- Place your content here -->
+                <div class="important-content">
+                    <!-- Example content -->
+                    <p style="color:red">Allergies</p>
+                    <p>Ongoing Problems</p>
+                    <p>Ongoing Medication</p>
+                </div>
                 <div style="display: flex;justify-content: center;">
                     <button id="fullscreen-toggle" class="btn btn-secondary">Toggle Fullscreen</button>
                     <!-- Include Consultation UI for Clinician -->
@@ -65,10 +83,8 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-
-        <script src='{{ VIDEO_HOST_URL }}video/external_api.js'></script>
-
+            <script src='{{ VIDEO_HOST_URL }}video/external_api.js'></script>
+    </div>
 
         {% if session['current_role'] == 'clinician' %}
         {% include 'consultation_clinician.html' %}

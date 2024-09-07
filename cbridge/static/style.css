@@ -70,3 +70,15 @@ input:required:invalid {
     border-color: #dc3545; 
     background-color: #f8d7da; 
 }
+
+.mt-4, .mt-3 {
+    margin-top: .5rem !important;
+}
+
+.navbar {
+    padding: .2rem 1rem;
+}
+
+.card-header {
+    padding: 1rem 1rem .2rem 1rem;
+}

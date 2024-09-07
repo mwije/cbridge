@@ -17,6 +17,10 @@
                     <label for="findings">Findings</label>
                     <textarea class="form-control" id="findings" name="findings" rows="4">{{ encounter.findings if encounter else '' }}</textarea>
                 </div>
+                <div class="form-group">
+                    <label for="diagnosis">Diagnosis</label>
+                    <input type="text" class="form-control" id="diagnosis" name="reason" value="{{ encounter.reason if encounter else '' }}">
+                </div>
             </form>
         </div>
     </div>
